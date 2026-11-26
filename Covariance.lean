@@ -269,6 +269,169 @@ theorem curvature_covariance_bound (Q R S X Y F : ℝ)
     mul_nonneg (sq_nonneg Q) (sub_nonneg.mpr hgram)
   nlinarith only [hh]
 
+
+/-- Finite complex Cauchy–Schwarz in real coordinates. No Gram bound
+is assumed. The zero-norm case is handled separately. -/
+theorem finite_complex_gram_bound {ι : Type*} (s : Finset ι)
+    (a b c d : ι → ℝ) :
+    (s.sum fun i => a i*c i+b i*d i)^2 +
+      (s.sum fun i => a i*d i-b i*c i)^2 ≤
+      (s.sum fun i => a i^2+b i^2)*(s.sum fun i => c i^2+d i^2) := by
+  let R : ℝ := s.sum fun i => a i^2+b i^2
+  let S : ℝ := s.sum fun i => c i^2+d i^2
+  let X : ℝ := s.sum fun i => a i*c i+b i*d i
+  let Y : ℝ := s.sum fun i => a i*d i-b i*c i
+  change X^2+Y^2 ≤ R*S
+  have hR : 0 ≤ R := Finset.sum_nonneg (fun i _ => add_nonneg (sq_nonneg _) (sq_nonneg _))
+  by_cases hzero : R = 0
+  · have hz : ∀ i ∈ s, a i = 0 ∧ b i = 0 := by
+      intro i hi
+      have hle : a i^2+b i^2 ≤ R :=
+        Finset.single_le_sum (fun j _ => add_nonneg (sq_nonneg _) (sq_nonneg _)) hi
+      rw [hzero] at hle
+      have ha : a i^2 = 0 := le_antisymm (by linarith [sq_nonneg (b i)]) (sq_nonneg _)
+      have hb : b i^2 = 0 := le_antisymm (by linarith [sq_nonneg (a i)]) (sq_nonneg _)
+      exact ⟨mul_self_eq_zero.mp (by simpa [pow_two] using ha),
+        mul_self_eq_zero.mp (by simpa [pow_two] using hb)⟩
+    have hx : X = 0 := by
+      dsimp [X]
+      calc
+        (s.sum fun i => a i*c i+b i*d i) = (s.sum fun _ => (0 : ℝ)) := by
+          apply Finset.sum_congr rfl
+          intro i hi
+          simp [(hz i hi).1, (hz i hi).2]
+        _ = 0 := by simp
+    have hy : Y = 0 := by
+      dsimp [Y]
+      calc
+        (s.sum fun i => a i*d i-b i*c i) = (s.sum fun _ => (0 : ℝ)) := by
+          apply Finset.sum_congr rfl
+          intro i hi
+          simp [(hz i hi).1, (hz i hi).2]
+        _ = 0 := by simp
+    rw [hx, hy, hzero]
+    norm_num
+  · have hp : 0 < R := lt_of_le_of_ne hR (Ne.symm hzero)
+    have hn : 0 ≤ (s.sum fun i =>
+        (R*c i-X*a i+Y*b i)^2+(R*d i-X*b i-Y*a i)^2) :=
+      Finset.sum_nonneg (fun i _ => add_nonneg (sq_nonneg _) (sq_nonneg _))
+    have he : (s.sum fun i =>
+        (R*c i-X*a i+Y*b i)^2+(R*d i-X*b i-Y*a i)^2) =
+        R*(R*S-(X^2+Y^2)) := by
+      calc
+        _ = (s.sum fun i => R^2*(c i^2+d i^2) -
+          (2*R*X)*(a i*c i+b i*d i) -
+          (2*R*Y)*(a i*d i-b i*c i) +
+          (X^2+Y^2)*(a i^2+b i^2)) := by
+          apply Finset.sum_congr rfl
+          intro i hi
+          ring
+        _ = R^2*S-(2*R*X)*X-(2*R*Y)*Y+(X^2+Y^2)*R := by
+          simp only [Finset.sum_add_distrib, Finset.sum_sub_distrib, ← Finset.mul_sum]
+          simp only [R, S, X, Y, Finset.sum_add_distrib, Finset.sum_sub_distrib]
+        _ = _ := by ring
+    rw [he] at hn
+    exact sub_nonneg.mp (nonneg_of_mul_nonneg_right hn hp)
+
+/-- The curvature bound now follows from explicit finite complex
+vectors rather than an assumed Gram inequality. F=2 Im h still
+represents the differential curvature identification. -/
+theorem finite_curvature_bound {ι : Type*} (s : Finset ι)
+    (a b c d : ι → ℝ) (Q F : ℝ)
+    (hF : F = 2*(s.sum fun i => a i*d i-b i*c i)) :
+    Q^2*F^2/4 ≤
+      (Q*(s.sum fun i => a i^2+b i^2))*(Q*(s.sum fun i => c i^2+d i^2)) -
+        (Q*(s.sum fun i => a i*c i+b i*d i))^2 := by
+  exact curvature_covariance_bound Q _ _ _ _ F (finite_complex_gram_bound s a b c d) hF
+
+/-- Actual one-variable derivative of normalized weight q/Q.
+The derivative hypotheses are the definitions of log-amplitude
+gradients; Q must be nonzero at the point. -/
+theorem normalized_weight_derivative (q Q : ℝ → ℝ) (t a A : ℝ)
+    (hq : HasDerivAt q (2*q t*a) t)
+    (hQ : HasDerivAt Q (2*Q t*A) t)
+    (hne : Q t ≠ 0) :
+    HasDerivAt (fun x => q x / Q x) (2*(q t/Q t)*(a-A)) t := by
+  have he : (2*q t*a*Q t-q t*(2*Q t*A))/(Q t)^2 =
+      2*(q t/Q t)*(a-A) := by
+    field_simp
+  rw [← he]
+  exact hq.div hQ hne
+
+/-- Algebraic divergence identity for a real scalar in flat coordinates
+with constant diagonal inverse metric eta. The arrays p and H stand
+for first and second derivatives at a point; H is symmetric.
+This proves the jet-level identity, not the full manifold theorem. -/
+theorem flat_scalar_divergence_jet {d : Type*} (s : Finset d)
+    (eta p : d → ℝ) (H : d → d → ℝ) (m2 u : ℝ) (ν : d)
+    (hsym : ∀ i j, H i j = H j i) :
+    (s.sum fun i => eta i*(2*(H i i*p ν+p i*H i ν)-2*p i*H ν i)) -
+        2*m2*u*p ν =
+      2*((s.sum fun i => eta i*H i i)-m2*u)*p ν := by
+  have he : (s.sum fun i => eta i*(2*(H i i*p ν+p i*H i ν)-2*p i*H ν i)) =
+      (s.sum fun i => (2*p ν)*(eta i*H i i)) := by
+    apply Finset.sum_congr rfl
+    intro i hi
+    rw [hsym i ν]
+    ring
+  rw [he, ← Finset.mul_sum]
+  ring
+
+/-- On-shell specialization of the flat-coordinate scalar divergence. -/
+theorem flat_scalar_on_shell_jet {d : Type*} (s : Finset d)
+    (eta p : d → ℝ) (H : d → d → ℝ) (m2 u : ℝ) (ν : d)
+    (hsym : ∀ i j, H i j = H j i)
+    (hkg : (s.sum fun i => eta i*H i i) = m2*u) :
+    (s.sum fun i => eta i*(2*(H i i*p ν+p i*H i ν)-2*p i*H ν i)) -
+        2*m2*u*p ν = 0 := by
+  rw [flat_scalar_divergence_jet s eta p H m2 u ν hsym, hkg]
+  ring
+
+/-- Centered cross moment: the shift by a constant disappears. -/
+theorem centered_cross_shift {ι : Type*} (s : Finset ι)
+    (r x y : ι → ℝ) (B : ℝ)
+    (h : (s.sum fun i => r i*x i) = 0) :
+    (s.sum fun i => r i*x i*y i) =
+      (s.sum fun i => r i*x i*(y i-B)) := by
+  have he : (s.sum fun i => r i*x i*(y i-B)) =
+      (s.sum fun i => r i*x i*y i - (r i*x i)*B) := by
+    apply Finset.sum_congr rfl
+    intro i hi
+    ring
+  rw [he, Finset.sum_sub_distrib, ← Finset.sum_mul, h]
+  ring
+
+/-- Phase-curvature identity at the level of first/second derivative
+data: x,y are centered amplitude gradients, bx,by phase gradients,
+and Hxy,Hyx mixed phase derivatives. The product-rule expansion
+is explicit; commuting mixed derivatives and centering are assumed. -/
+theorem phase_curvature_jet {ι : Type*} (s : Finset ι)
+    (r x y bx byy Hxy Hyx : ι → ℝ) (Bx By : ℝ)
+    (hx : (s.sum fun i => r i*x i) = 0)
+    (hy : (s.sum fun i => r i*y i) = 0)
+    (hmix : ∀ i ∈ s, Hxy i = Hyx i) :
+    (s.sum fun i => 2*r i*x i*byy i+r i*Hxy i -
+      (2*r i*y i*bx i+r i*Hyx i)) =
+      2*(s.sum fun i => r i*(x i*(byy i-By)-y i*(bx i-Bx))) := by
+  calc
+    _ = (s.sum fun i => 2*(r i*x i*byy i-r i*y i*bx i)) := by
+      apply Finset.sum_congr rfl
+      intro i hi
+      rw [hmix i hi]
+      ring
+    _ = 2*((s.sum fun i => r i*x i*byy i) -
+        (s.sum fun i => r i*y i*bx i)) := by
+      rw [← Finset.mul_sum, Finset.sum_sub_distrib]
+    _ = 2*((s.sum fun i => r i*x i*(byy i-By)) -
+        (s.sum fun i => r i*y i*(bx i-Bx))) := by
+      rw [centered_cross_shift s r x byy By hx, centered_cross_shift s r y bx Bx hy]
+    _ = _ := by
+      congr 1
+      rw [← Finset.sum_sub_distrib]
+      apply Finset.sum_congr rfl
+      intro i hi
+      ring
+
 end MicroMacro
 
 #print axioms MicroMacro.centered_shift
@@ -294,3 +457,10 @@ end MicroMacro
 #print axioms MicroMacro.projective_block_gram
 #print axioms MicroMacro.fisher_quarter_split
 #print axioms MicroMacro.curvature_covariance_bound
+#print axioms MicroMacro.finite_complex_gram_bound
+#print axioms MicroMacro.finite_curvature_bound
+#print axioms MicroMacro.normalized_weight_derivative
+#print axioms MicroMacro.flat_scalar_divergence_jet
+#print axioms MicroMacro.flat_scalar_on_shell_jet
+#print axioms MicroMacro.centered_cross_shift
+#print axioms MicroMacro.phase_curvature_jet
