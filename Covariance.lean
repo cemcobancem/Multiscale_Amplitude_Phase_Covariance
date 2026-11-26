@@ -1397,7 +1397,7 @@ theorem eventual_prime_bound_global (C B : ℝ) (hC : 0 ≤ C) (hB : 2 ≤ B)
   let M := strictPrimeCount B+logCount B
   let L := Real.log (2:ℝ)
   have hL : 0 < L := Real.log_pos (by norm_num)
-  have hM : 0 ≤ M := add_nonneg (by positivity [strictPrimeCount]) (log_count_nonnegative B)
+  have hM : 0 ≤ M := add_nonneg (by unfold strictPrimeCount; positivity) (log_count_nonnegative B)
   let D := max C (M/L)
   have hD : 0 ≤ D := hC.trans (le_max_left _ _)
   refine ⟨D, hD, ?_⟩
@@ -1414,7 +1414,7 @@ theorem eventual_prime_bound_global (C B : ℝ) (hC : 0 ≤ C) (hB : 2 ≤ B)
   · exact (h x hlarge).trans (mul_le_mul_of_nonneg_right
       (mul_le_mul_of_nonneg_right (le_max_left C (M/L)) (Real.rpow_nonneg hx.le _)) hlog0)
   have hxb : x ≤ B := le_of_not_ge hlarge
-  have hp0 : 0 ≤ strictPrimeCount x := by positivity [strictPrimeCount]
+  have hp0 : 0 ≤ strictPrimeCount x := by unfold strictPrimeCount; positivity
   have hpb : strictPrimeCount x ≤ strictPrimeCount B := by
     unfold strictPrimeCount
     exact_mod_cast Nat.monotone_primeCounting' (Nat.ceil_le_ceil hxb)
