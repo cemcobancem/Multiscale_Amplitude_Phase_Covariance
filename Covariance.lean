@@ -1745,7 +1745,7 @@ theorem projective_tensor_nonnegative {V E : Type*}
   unfold projectiveTensor projectivePullback
   rw [show (inner ℂ (horizontalProjection (n x) (fderiv ℝ n x u))
       (horizontalProjection (n x) (fderiv ℝ n x u))).re =
-      ‖horizontalProjection (n x) (fderiv ℝ n x u)‖^2 from inner_self_eq_norm_sq _]
+      ‖horizontalProjection (n x) (fderiv ℝ n x u)‖^2 from inner_self_eq_norm_sq (𝕜 := ℂ) _]
   exact sq_nonneg _
 
 /-- Differentiating the normalization constraint with a full tangent
@@ -1760,11 +1760,13 @@ theorem normalized_fderiv_vertical_real_zero {V E : Type*}
     funext y
     exact hunit y
   have h := fderiv_inner_apply ℂ hn hn u
-  rw [he, fderiv_const] at h
+  rw [he] at h
+  have hz : fderiv ℝ (fun _ : V => (1:ℂ)) x = 0 := (hasFDerivAt_const (1:ℂ) x).fderiv
+  rw [hz] at h
   have hr := congrArg Complex.re h
   simp only [ContinuousLinearMap.zero_apply, Complex.zero_re, Complex.add_re] at hr
   have hs : (inner ℂ (fderiv ℝ n x u) (n x)).re =
-      (inner ℂ (n x) (fderiv ℝ n x u)).re := inner_re_symm _ _
+      (inner ℂ (n x) (fderiv ℝ n x u)).re := inner_re_symm (𝕜 := ℂ) _ _
   linarith
 
 /-- Intrinsic Gram identity, with no coordinate choices. -/
@@ -1789,7 +1791,8 @@ theorem horizontal_gram_imaginary {E : Type*}
     (inner ℂ (horizontalProjection n u) (horizontalProjection n v)).im =
       (inner ℂ u v).im := by
   rw [horizontal_gram_subtract n u v hn]
-  simp [Complex.sub_im, Complex.mul_im, Complex.star_def, hu, hv]
+  have hure : (inner ℂ u n).re = 0 := (inner_re_symm (𝕜 := ℂ) u n).trans hu
+  simp [Complex.sub_im, Complex.mul_im, hure, hv]
 
 /-- Actual antisymmetric derivative of the Berry connection. The
 symmetric second derivative cancels, rather than being discarded. -/
@@ -1825,7 +1828,7 @@ theorem berry_curvature_fderiv {V E : Type*}
     (normalized_fderiv_vertical_real_zero n x u hn hunit)
     (normalized_fderiv_vertical_real_zero n x v hn hunit)]
   have him : (inner ℂ (D x v) (D x u)).im =
-      -(inner ℂ (D x u) (D x v)).im := inner_im_symm _ _
+      -(inner ℂ (D x u) (D x v)).im := inner_im_symm (𝕜 := ℂ) _ _
   simp only [Complex.add_im]
   linarith
 
@@ -1842,7 +1845,7 @@ theorem berry_curvature_C2 {V E : Type*}
   apply berry_curvature_fderiv n x u v
   · exact hn.differentiableAt (by norm_num)
   · exact (hn.fderiv_right (m := 1) (by norm_num)).differentiableAt (by norm_num)
-  · exact hn.isSymmSndFDerivAt (by simp [minSmoothness])
+  · exact hn.isSymmSndFDerivAt (by simp)
   · exact hunit
 
 /-- Actual complex finite multiplet inner product. -/
@@ -2015,6 +2018,7 @@ noncomputable def quotientJetTensor {V E : Type*}
     (by
       intro j k h
       obtain ⟨c,d,hc,hn,hD⟩ := h
+      change projectivePullback j.val.1 j.val.2 u v = projectivePullback k.val.1 k.val.2 u v
       rw [hn]
       exact (projective_pullback_gauge j.val.1 j.val.2 k.val.2 c d u v
         j.property hc hD).symm) j
@@ -2125,3 +2129,13 @@ end MicroMacro
 #print axioms MicroMacro.finite_normalized_berry_mean
 #print axioms MicroMacro.projective_tensor_normalized_covariance
 #print axioms MicroMacro.quotient_jet_tensor_rep
+#print axioms MicroMacro.horizontalProjection
+#print axioms MicroMacro.strictPrimeCount
+#print axioms MicroMacro.logCount
+#print axioms MicroMacro.projectivePullback
+#print axioms MicroMacro.covectorConnection
+#print axioms MicroMacro.tensorConnection
+#print axioms MicroMacro.projectiveTensor
+#print axioms MicroMacro.ProjectiveJet
+#print axioms MicroMacro.projectiveJetRel
+#print axioms MicroMacro.quotientJetTensor
