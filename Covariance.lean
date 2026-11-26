@@ -536,6 +536,182 @@ theorem phase_curvature_line_derivative {ι : Type*} (s : Finset ι)
   rw [← he]
   exact h1.sub h2
 
+
+/-- The score of a nonzero normalized weight, using an actual logarithmic derivative. -/
+theorem normalized_log_score (q Q : ℝ → ℝ) (t a A : ℝ)
+    (hq : HasDerivAt q (2*q t*a) t)
+    (hQ : HasDerivAt Q (2*Q t*A) t)
+    (hqne : q t ≠ 0) (hQne : Q t ≠ 0) :
+    HasDerivAt (fun u => Real.log (q u / Q u)) (2*(a-A)) t := by
+  have hr := normalized_weight_derivative q Q t a A hq hQ hQne
+  have hn : q t / Q t ≠ 0 := div_ne_zero hqne hQne
+  have he : (2*(q t/Q t)*(a-A))/(q t/Q t) = 2*(a-A) := by
+    field_simp
+  rw [← he]
+  exact hr.log hn
+
+/-- Coordinate-level covariant stress divergence. The arrays are a covector
+p and its symmetric covariant derivative H. The inverse-metric array gi
+is arbitrary, not restricted to diagonal coordinates. The displayed
+left side is the metric-compatible product-rule expansion, not a formal
+definition of a manifold connection. -/
+theorem covariant_scalar_divergence_jet {d : Type*} (s : Finset d)
+    (gi : d → d → ℝ) (p : d → ℝ) (H : d → d → ℝ)
+    (m2 u : ℝ) (ν : d) (hsym : ∀ i j, H i j = H j i) :
+    (s.sum fun i => s.sum fun j => gi i j *
+      (2*(H i j*p ν+p j*H i ν)-2*p j*H ν i)) - 2*m2*u*p ν =
+      2*((s.sum fun i => s.sum fun j => gi i j*H i j)-m2*u)*p ν := by
+  have he : (s.sum fun i => s.sum fun j => gi i j *
+      (2*(H i j*p ν+p j*H i ν)-2*p j*H ν i)) =
+      (s.sum fun i => s.sum fun j => (2*p ν)*(gi i j*H i j)) := by
+    apply Finset.sum_congr rfl
+    intro i hi
+    apply Finset.sum_congr rfl
+    intro j hj
+    rw [hsym i ν]
+    ring
+  rw [he]
+  simp only [← Finset.mul_sum]
+  ring
+
+/-- A finite weighted collection of on-shell scalar components has zero
+expanded divergence. A complex scalar is represented by two real
+components; constant ensemble weights are required for the physical
+interpretation. Metric compatibility and symmetric Hessian are encoded
+at the coordinate jet level. -/
+theorem covariant_ensemble_on_shell_jet {ι d : Type*}
+    (s : Finset ι) (D : Finset d)
+    (w : ι → ℝ) (gi : d → d → ℝ) (p : ι → d → ℝ)
+    (H : ι → d → d → ℝ) (u : ι → ℝ) (m2 : ℝ) (ν : d)
+    (hsym : ∀ n ∈ s, ∀ i j, H n i j = H n j i)
+    (hkg : ∀ n ∈ s, (D.sum fun i => D.sum fun j => gi i j*H n i j) = m2*u n) :
+    (s.sum fun n => w n*((D.sum fun i => D.sum fun j => gi i j *
+      (2*(H n i j*p n ν+p n j*H n i ν)-2*p n j*H n ν i)) -
+        2*m2*u n*p n ν)) = 0 := by
+  calc
+    _ = (s.sum fun _ => (0 : ℝ)) := by
+      apply Finset.sum_congr rfl
+      intro n hn
+      rw [covariant_scalar_divergence_jet D gi (p n) (H n) m2 (u n) ν (hsym n hn),
+        hkg n hn]
+      ring
+    _ = 0 := by simp
+
+/-- Real and imaginary parts of an affine-phase plane wave:
+first and second derivatives along a coordinate line. -/
+theorem affine_plane_wave_derivatives (k α t : ℝ) :
+    HasDerivAt (fun x => Real.cos (k*x+α)) (-Real.sin (k*t+α)*k) t ∧
+    HasDerivAt (fun x => Real.sin (k*x+α)) (Real.cos (k*t+α)*k) t ∧
+    HasDerivAt (fun x => -Real.sin (k*x+α)*k) (-Real.cos (k*t+α)*k^2) t ∧
+    HasDerivAt (fun x => Real.cos (k*x+α)*k) (-Real.sin (k*t+α)*k^2) t := by
+  have h : HasDerivAt (fun x : ℝ => k*x+α) k t := by
+    simpa using ((hasDerivAt_id t).const_mul k).add_const α
+  refine ⟨h.cos, h.sin, ?_, ?_⟩
+  · convert (h.sin.neg).mul_const k using 1
+    ring
+  · convert h.cos.mul_const k using 1
+    ring
+
+/-- A plane wave restricted to a time line and a spatial line through the
+same phase satisfies the actual second-derivative KG relation for both
+real components. This is an explicit flat-spacetime construction in
+1+1 dimensions; adding spectator coordinates leaves it unchanged. -/
+theorem plane_wave_mass_shell (ω k m2 θ : ℝ)
+    (hdisp : ω^2 = k^2+m2) :
+    -(deriv (deriv (fun t => Real.cos (-ω*t+θ))) 0) +
+      deriv (deriv (fun x => Real.cos (k*x+θ))) 0 - m2*Real.cos θ = 0 ∧
+    -(deriv (deriv (fun t => Real.sin (-ω*t+θ))) 0) +
+      deriv (deriv (fun x => Real.sin (k*x+θ))) 0 - m2*Real.sin θ = 0 := by
+  have hc (a : ℝ) : deriv (fun t => Real.cos (a*t+θ)) =
+      fun t => -Real.sin (a*t+θ)*a := by
+    funext t
+    exact (affine_plane_wave_derivatives a θ t).1.deriv
+  have hs (a : ℝ) : deriv (fun t => Real.sin (a*t+θ)) =
+      fun t => Real.cos (a*t+θ)*a := by
+    funext t
+    exact (affine_plane_wave_derivatives a θ t).2.1.deriv
+  have hc2 (a : ℝ) :
+      deriv (deriv (fun t => Real.cos (a*t+θ))) 0 = -Real.cos θ*a^2 := by
+    rw [hc a]
+    simpa using (affine_plane_wave_derivatives a θ 0).2.2.1.deriv
+  have hs2 (a : ℝ) :
+      deriv (deriv (fun t => Real.sin (a*t+θ))) 0 = -Real.sin θ*a^2 := by
+    rw [hs a]
+    simpa using (affine_plane_wave_derivatives a θ 0).2.2.2.deriv
+  constructor
+  · rw [hc2 (-ω), hc2 k]
+    linear_combination Real.cos θ*hdisp
+  · rw [hs2 (-ω), hs2 k]
+    linear_combination Real.sin θ*hdisp
+
+/-- The kinetic Gram tensor of the two real components of a plane wave.
+Together with affine_plane_wave_derivatives, this computes rather
+than assumes the local kinetic tensor of the explicit field. -/
+theorem plane_wave_kinetic_component (r k l θ : ℝ) :
+    r*((-Real.sin θ*k)*(-Real.sin θ*l) +
+       (Real.cos θ*k)*(Real.cos θ*l)) = r*k*l := by
+  linear_combination r*k*l*(Real.sin_sq_add_cos_sq θ)
+
+/-- Two equal-weight opposite momenta have zero mean, but their
+on-shell spatial stress differs from that of waves along an orthogonal
+axis. r is the total positive density. The trace term vanishes by the
+mass-shell equation. -/
+theorem counterpropagating_stress_witness (r ω k m2 : ℝ)
+    (hr : 0 < r) (hk : k ≠ 0) (hdisp : ω^2 = k^2+m2) :
+    (r/2*k + r/2*(-k) = 0) ∧
+    (2*(r/2*k^2+r/2*(-k)^2) - (-r*ω^2+r*k^2+m2*r) = 2*r*k^2) ∧
+    (2*(r/2*(0:ℝ)^2+r/2*0^2) - (-r*ω^2+r*k^2+m2*r) = 0) ∧
+    (2*r*k^2 ≠ 0) := by
+  refine ⟨by ring, ?_, ?_, closure_witness r k hr hk⟩
+  · linear_combination r*hdisp
+  · linear_combination r*hdisp
+
+/-- Finite spectral heat-trace identity obtained by integrating the
+exponential kernel from each eigenvalue to a finite cutoff. This is a
+preliminary analytic step, valid for any finite spectrum, not RH. -/
+theorem finite_heat_trace_tail {ι : Type*} (s : Finset ι)
+    (eigenvalue : ι → ℝ) (τ B : ℝ) :
+    (s.sum fun i => Real.exp (-τ*eigenvalue i)) =
+      (s.sum fun i => ∫ x in eigenvalue i..B, τ*Real.exp (-τ*x)) +
+        (s.card : ℝ)*Real.exp (-τ*B) := by
+  have hd (x : ℝ) : HasDerivAt (fun u => -Real.exp (-τ*u))
+      (τ*Real.exp (-τ*x)) x := by
+    have h : HasDerivAt (fun u : ℝ => -τ*u) (-τ) x := by
+      simpa using (hasDerivAt_id x).const_mul (-τ)
+    convert h.exp.neg using 1 <;> ring
+  have hcont : Continuous (fun x => τ*Real.exp (-τ*x)) := by fun_prop
+  have hi (i : ι) : (∫ x in eigenvalue i..B, τ*Real.exp (-τ*x)) =
+      -Real.exp (-τ*B) - (-Real.exp (-τ*eigenvalue i)) :=
+    intervalIntegral.integral_eq_sub_of_hasDerivAt (fun x _ => hd x)
+      (hcont.intervalIntegrable _ _)
+  calc
+    _ = (s.sum fun i => (∫ x in eigenvalue i..B, τ*Real.exp (-τ*x)) +
+        Real.exp (-τ*B)) := by
+      apply Finset.sum_congr rfl
+      intro i hmem
+      rw [hi i]
+      ring
+    _ = _ := by simp [Finset.sum_add_distrib, nsmul_eq_mul]
+
+/-- Absolute error bound for a truncated Laplace transform of a
+remainder R, dominated pointwise by M. This uses genuine integration,
+and is independent of the choice of arithmetic counting function.
+The infinite-interval limit and RH prime-counting bound remain open. -/
+theorem laplace_remainder_interval (τ a b : ℝ) (R M : ℝ → ℝ)
+    (hab : a ≤ b) (hτ : 0 ≤ τ)
+    (hbound : ∀ x ∈ Set.Icc a b, |R x| ≤ M x)
+    (hint : IntervalIntegrable (fun x => τ*Real.exp (-τ*x)*M x)
+      MeasureTheory.volume a b) :
+    |∫ x in a..b, τ*Real.exp (-τ*x)*R x| ≤
+      ∫ x in a..b, τ*Real.exp (-τ*x)*M x := by
+  rw [← Real.norm_eq_abs]
+  apply intervalIntegral.norm_integral_le_of_norm_le hab
+  · filter_upwards [] with x hx
+    have hn : 0 ≤ τ*Real.exp (-τ*x) := mul_nonneg hτ (Real.exp_pos _).le
+    rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg hn]
+    exact mul_le_mul_of_nonneg_left (hbound x ⟨hx.1.le, hx.2⟩) hn
+  · exact hint
+
 end MicroMacro
 
 #print axioms MicroMacro.centered_shift
@@ -572,3 +748,12 @@ end MicroMacro
 #print axioms MicroMacro.ensemble_energy_flux_causal
 #print axioms MicroMacro.ensemble_normalized_weight_derivative
 #print axioms MicroMacro.phase_curvature_line_derivative
+#print axioms MicroMacro.normalized_log_score
+#print axioms MicroMacro.covariant_scalar_divergence_jet
+#print axioms MicroMacro.covariant_ensemble_on_shell_jet
+#print axioms MicroMacro.affine_plane_wave_derivatives
+#print axioms MicroMacro.plane_wave_mass_shell
+#print axioms MicroMacro.plane_wave_kinetic_component
+#print axioms MicroMacro.counterpropagating_stress_witness
+#print axioms MicroMacro.finite_heat_trace_tail
+#print axioms MicroMacro.laplace_remainder_interval
