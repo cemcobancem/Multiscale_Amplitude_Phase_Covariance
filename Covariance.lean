@@ -252,7 +252,7 @@ theorem fisher_quarter_split {ι : Type*} (s : Finset ι)
       intro i hi
       rw [h i hi]
       ring
-    rw [hh, Finset.sum_mul]
+    rw [hh, ← Finset.sum_mul]
     ring
   simp only [mul_add, Finset.sum_add_distrib]
   rw [he]
