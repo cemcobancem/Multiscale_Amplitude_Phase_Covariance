@@ -37,8 +37,12 @@ jobs:
           source = Path("Covariance.lean").read_text()
           out = Path("axiom-audit.log").read_text()
           names = re.findall(r"^#print axioms (MicroMacro\.\w+)$", source, re.M)
-          declarations = re.findall(r"^theorem (\w+)", source, re.M)
-          assert len(names) == len(declarations) == 107
+          theorems = re.findall(r"^theorem (\w+)", source, re.M)
+          definitions = re.findall(r"^(?:noncomputable )?def (\w+)", source, re.M)
+          declarations = theorems + definitions
+          assert len(theorems) == 107
+          assert len(names) == len(declarations)
+          assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)
           allowed = {"propext", "Classical.choice", "Quot.sound"}
           for name in names:
@@ -49,7 +53,7 @@ jobs:
               else:
                   assert "'" + name + "' does not depend on any axioms" in out, name
           assert "sorryAx" not in out
-          print("Axiom audit passed for all", len(names), "theorems")
+          print("Axiom audit passed for all", len(theorems), "theorems and", len(definitions), "definitions")
           PY
       - name: Record toolchain
         run: |
