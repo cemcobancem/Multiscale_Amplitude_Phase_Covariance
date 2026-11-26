@@ -607,8 +607,10 @@ theorem affine_plane_wave_derivatives (k α t : ℝ) :
   have h : HasDerivAt (fun x : ℝ => k*x+α) k t := by
     simpa using ((hasDerivAt_id t).const_mul k).add_const α
   refine ⟨h.cos, h.sin, ?_, ?_⟩
-  · convert (h.sin.neg).mul_const k using 1 <;> ring
-  · convert h.cos.mul_const k using 1 <;> ring
+  · convert (h.sin.neg).mul_const k using 1
+    ring
+  · convert h.cos.mul_const k using 1
+    ring
 
 /-- A plane wave restricted to a time line and a spatial line through the
 same phase satisfies the actual second-derivative KG relation for both
@@ -668,9 +670,9 @@ theorem counterpropagating_stress_witness (r ω k m2 : ℝ)
 exponential kernel from each eigenvalue to a finite cutoff. This is a
 preliminary analytic step, valid for any finite spectrum, not RH. -/
 theorem finite_heat_trace_tail {ι : Type*} (s : Finset ι)
-    (λval : ι → ℝ) (τ B : ℝ) :
-    (s.sum fun i => Real.exp (-τ*λval i)) =
-      (s.sum fun i => ∫ x in λval i..B, τ*Real.exp (-τ*x)) +
+    (eigenvalue : ι → ℝ) (τ B : ℝ) :
+    (s.sum fun i => Real.exp (-τ*eigenvalue i)) =
+      (s.sum fun i => ∫ x in eigenvalue i..B, τ*Real.exp (-τ*x)) +
         (s.card : ℝ)*Real.exp (-τ*B) := by
   have hd (x : ℝ) : HasDerivAt (fun u => -Real.exp (-τ*u))
       (τ*Real.exp (-τ*x)) x := by
@@ -678,12 +680,12 @@ theorem finite_heat_trace_tail {ι : Type*} (s : Finset ι)
       simpa using (hasDerivAt_id x).const_mul (-τ)
     convert h.exp.neg using 1 <;> ring
   have hcont : Continuous (fun x => τ*Real.exp (-τ*x)) := by fun_prop
-  have hi (i : ι) : (∫ x in λval i..B, τ*Real.exp (-τ*x)) =
-      -Real.exp (-τ*B) - (-Real.exp (-τ*λval i)) :=
+  have hi (i : ι) : (∫ x in eigenvalue i..B, τ*Real.exp (-τ*x)) =
+      -Real.exp (-τ*B) - (-Real.exp (-τ*eigenvalue i)) :=
     intervalIntegral.integral_eq_sub_of_hasDerivAt (fun x _ => hd x)
       (hcont.intervalIntegrable _ _)
   calc
-    _ = (s.sum fun i => (∫ x in λval i..B, τ*Real.exp (-τ*x)) +
+    _ = (s.sum fun i => (∫ x in eigenvalue i..B, τ*Real.exp (-τ*x)) +
         Real.exp (-τ*B)) := by
       apply Finset.sum_congr rfl
       intro i hmem
