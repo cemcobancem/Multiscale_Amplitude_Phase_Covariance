@@ -759,10 +759,11 @@ theorem infinite_scaled_remainder_bound (R : ℝ → ℝ) (C τ : ℝ)
       max_le (by linarith) (spectral_log_majorant τ y hτ hy')
     have hpow : (y/τ)^(1/2:ℝ) = y^(1/2:ℝ)*τ^(-1/2:ℝ) := by
       rw [div_eq_mul_inv, Real.mul_rpow hy'.le (inv_nonneg.mpr hτ.le),
-        ← Real.rpow_neg_eq_inv_rpow]
+        ← Real.rpow_neg_eq_inv_rpow] <;> norm_num
     have hstep : y^(1/2:ℝ)*y = y^(3/2:ℝ) := by
-      rw [← Real.rpow_one y, ← Real.rpow_add hy']
-      norm_num
+      calc
+        _ = y^(1/2:ℝ)*y^(1:ℝ) := by rw [Real.rpow_one]
+        _ = _ := by rw [← Real.rpow_add hy']; norm_num
     rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (Real.exp_pos _).le]
     calc
       _ ≤ Real.exp (-y)*(C*(y/τ)^(1/2:ℝ)*max 0 (Real.log (y/τ))) :=
@@ -836,7 +837,7 @@ theorem exponential_tail_integral (a τ : ℝ) (hτ : 0 < τ) :
     have hex := (Real.tendsto_exp_neg_atTop_nhds_zero.comp hlin).neg
     simpa [Function.comp_def, neg_mul] using hex
   have hpos : ∀ x ∈ Set.Ioi a, 0 ≤ τ*Real.exp (-τ*x) :=
-    fun x _ => mul_nonneg hτ.le (Real.exp_pos x).le
+    fun x _ => mul_nonneg hτ.le (Real.exp_pos (-τ*x)).le
   have hi := MeasureTheory.integrableOn_Ioi_deriv_of_nonneg'
     (fun x _ => hd x) hpos hl
   refine ⟨hi, ?_⟩
@@ -915,7 +916,9 @@ theorem conservation_exchange_linear {V W : Type*}
     D M = -D R := by
   have he : D M+D R = 0 := by
     simpa [hT] using hcons
-  exact eq_neg_of_add_eq_zero_left he
+  calc
+    D M = D M+D R-D R := by abel
+    _ = -D R := by rw [he, zero_sub]
 
 end MicroMacro
 
