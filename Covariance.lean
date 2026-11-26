@@ -328,10 +328,10 @@ theorem finite_complex_gram_bound {ι : Type*} (s : Finset ι)
           ring
         _ = R^2*S-(2*R*X)*X-(2*R*Y)*Y+(X^2+Y^2)*R := by
           simp only [Finset.sum_add_distrib, Finset.sum_sub_distrib, ← Finset.mul_sum]
-          rfl
+          simp only [R, S, X, Y, Finset.sum_add_distrib, Finset.sum_sub_distrib]
         _ = _ := by ring
     rw [he] at hn
-    exact sub_nonneg.mp (nonneg_of_mul_nonneg_left hn hp)
+    exact sub_nonneg.mp (nonneg_of_mul_nonneg_right hn hp)
 
 /-- The curvature bound now follows from explicit finite complex
 vectors rather than an assumed Gram inequality. F=2 Im h still
@@ -354,7 +354,7 @@ theorem normalized_weight_derivative (q Q : ℝ → ℝ) (t a A : ℝ)
     HasDerivAt (fun x => q x / Q x) (2*(q t/Q t)*(a-A)) t := by
   have he : (2*q t*a*Q t-q t*(2*Q t*A))/(Q t)^2 =
       2*(q t/Q t)*(a-A) := by
-    field_simp <;> ring
+    field_simp
   rw [← he]
   exact hq.div hQ hne
 
