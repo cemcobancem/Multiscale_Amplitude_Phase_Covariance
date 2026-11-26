@@ -1,7 +1,7 @@
 name: Lean proof check
 on:
   push:
-    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local]
+    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -38,7 +38,7 @@ jobs:
           out = Path("axiom-audit.log").read_text()
           names = re.findall(r"^#print axioms (MicroMacro\.\w+)$", source, re.M)
           declarations = re.findall(r"^theorem (\w+)", source, re.M)
-          assert len(names) == len(declarations) == 72
+          assert len(names) == len(declarations) == 80
           assert {x.split(".")[-1] for x in names} == set(declarations)
           allowed = {"propext", "Classical.choice", "Quot.sound"}
           for name in names:
