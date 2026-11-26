@@ -1692,6 +1692,340 @@ theorem local_metric_stress_on_shell {d : Type*} [DecidableEq d]
   rw [local_metric_stress_divergence s A g p H m2 u ν hν hA hH hinv, hkg]
   ring
 
+
+/-- Projective quantum geometric tensor of an actual differentiable
+local lift. The tangent map is the real Frechet derivative. -/
+noncomputable def projectiveTensor {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : V → E) (x u v : V) : ℂ :=
+  projectivePullback (n x) (fderiv ℝ n x) u v
+
+theorem projective_tensor_gauge_fderiv {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E]
+    (n : V → E) (c : V → ℂ) (x u v : V)
+    (hn : DifferentiableAt ℝ n x) (hc : DifferentiableAt ℝ c x)
+    (hunit : inner ℂ (n x) (n x) = 1) (hphase : star (c x)*c x = 1) :
+    projectiveTensor (fun y => c y • n y) x u v =
+      projectiveTensor n x u v := by
+  unfold projectiveTensor
+  rw [(hc.hasFDerivAt.fun_smul hn.hasFDerivAt).fderiv]
+  apply projective_pullback_gauge _ _ _ _ (fderiv ℝ c x) _ _ hunit hphase
+  intro w
+  rfl
+
+/-- Pullback under an actual differentiable change of parameters. -/
+theorem projective_tensor_reparam {U V E : Type*}
+    [NormedAddCommGroup U] [NormedSpace ℝ U]
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : V → E) (g : U → V) (x u v : U)
+    (hn : DifferentiableAt ℝ n (g x)) (hg : DifferentiableAt ℝ g x) :
+    projectiveTensor (n ∘ g) x u v =
+      projectiveTensor n (g x) (fderiv ℝ g x u) (fderiv ℝ g x v) := by
+  unfold projectiveTensor
+  rw [fderiv_comp x hn hg]
+  rfl
+
+theorem projective_tensor_hermitian {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : V → E) (x u v : V) :
+    star (projectiveTensor n x v u) = projectiveTensor n x u v := by
+  unfold projectiveTensor projectivePullback
+  exact inner_conj_symm _ _
+
+theorem projective_tensor_nonnegative {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : V → E) (x u : V) :
+    0 ≤ (projectiveTensor n x u u).re := by
+  unfold projectiveTensor projectivePullback
+  rw [show (inner ℂ (horizontalProjection (n x) (fderiv ℝ n x u))
+      (horizontalProjection (n x) (fderiv ℝ n x u))).re =
+      ‖horizontalProjection (n x) (fderiv ℝ n x u)‖^2 from inner_self_eq_norm_sq _]
+  exact sq_nonneg _
+
+/-- Differentiating the normalization constraint with a full tangent
+derivative gives a purely imaginary vertical coefficient. -/
+theorem normalized_fderiv_vertical_real_zero {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : V → E) (x u : V) (hn : DifferentiableAt ℝ n x)
+    (hunit : ∀ y, inner ℂ (n y) (n y) = 1) :
+    (inner ℂ (n x) (fderiv ℝ n x u)).re = 0 := by
+  have he : (fun y => inner ℂ (n y) (n y)) = fun _ : V => (1:ℂ) := by
+    funext y
+    exact hunit y
+  have h := fderiv_inner_apply ℂ hn hn u
+  rw [he, fderiv_const] at h
+  have hr := congrArg Complex.re h
+  simp only [ContinuousLinearMap.zero_apply, Complex.zero_re, Complex.add_re] at hr
+  have hs : (inner ℂ (fderiv ℝ n x u) (n x)).re =
+      (inner ℂ (n x) (fderiv ℝ n x u)).re := inner_re_symm _ _
+  linarith
+
+/-- Intrinsic Gram identity, with no coordinate choices. -/
+theorem horizontal_gram_subtract {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E]
+    (n u v : E) (hn : inner ℂ n n = 1) :
+    inner ℂ (horizontalProjection n u) (horizontalProjection n v) =
+      inner ℂ u v - star (inner ℂ n u)*inner ℂ n v := by
+  unfold horizontalProjection
+  rw [inner_sub_left, inner_sub_right, inner_sub_right,
+    inner_smul_right, inner_smul_left, inner_smul_left,
+    inner_smul_right, hn]
+  rw [show inner ℂ u n = star (inner ℂ n u) from (inner_conj_symm _ _).symm]
+  ring
+
+/-- Real part of a normalized vertical inner product is zero, so the
+vertical subtraction has no imaginary contribution. -/
+theorem horizontal_gram_imaginary {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E]
+    (n u v : E) (hn : inner ℂ n n = 1)
+    (hu : (inner ℂ n u).re = 0) (hv : (inner ℂ n v).re = 0) :
+    (inner ℂ (horizontalProjection n u) (horizontalProjection n v)).im =
+      (inner ℂ u v).im := by
+  rw [horizontal_gram_subtract n u v hn]
+  simp [Complex.sub_im, Complex.mul_im, Complex.star_def, hu, hv]
+
+/-- Actual antisymmetric derivative of the Berry connection. The
+symmetric second derivative cancels, rather than being discarded. -/
+theorem berry_curvature_fderiv {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : V → E) (x u v : V)
+    (hn : DifferentiableAt ℝ n x)
+    (hd : DifferentiableAt ℝ (fderiv ℝ n) x)
+    (hs : IsSymmSndFDerivAt ℝ n x)
+    (hunit : ∀ y, inner ℂ (n y) (n y) = 1) :
+    (fderiv ℝ (fun y => inner ℂ (n y) (fderiv ℝ n y v)) x u).im -
+      (fderiv ℝ (fun y => inner ℂ (n y) (fderiv ℝ n y u)) x v).im =
+      2*(projectiveTensor n x u v).im := by
+  let D := fderiv ℝ n
+  have hEval (w : V) : HasFDerivAt (fun y => D y w)
+      ((ContinuousLinearMap.apply ℝ E w).comp (fderiv ℝ D x)) x :=
+    (ContinuousLinearMap.apply ℝ E w).hasFDerivAt.comp x hd.hasFDerivAt
+  have he (w z : V) : fderiv ℝ (fun y => D y w) x z =
+      fderiv ℝ D x z w := by
+    rw [(hEval w).fderiv]
+    rfl
+  change (fderiv ℝ (fun y => inner ℂ (n y) (D y v)) x u).im -
+    (fderiv ℝ (fun y => inner ℂ (n y) (D y u)) x v).im = _
+  rw [fderiv_inner_apply ℂ hn (hEval v).differentiableAt,
+    fderiv_inner_apply ℂ hn (hEval u).differentiableAt, he v u, he u v]
+  change (inner ℂ (n x) (fderiv ℝ D x u v) + inner ℂ (D x u) (D x v)).im -
+    (inner ℂ (n x) (fderiv ℝ D x v u) + inner ℂ (D x v) (D x u)).im = _
+  have hsym : fderiv ℝ D x u v = fderiv ℝ D x v u := hs u v
+  rw [hsym]
+  unfold projectiveTensor projectivePullback
+  rw [horizontal_gram_imaginary _ _ _ (hunit x)
+    (normalized_fderiv_vertical_real_zero n x u hn hunit)
+    (normalized_fderiv_vertical_real_zero n x v hn hunit)]
+  have him : (inner ℂ (D x v) (D x u)).im =
+      -(inner ℂ (D x u) (D x v)).im := inner_im_symm _ _
+  simp only [Complex.add_im]
+  linarith
+
+/-- Actual C² local lifts automatically have the derivative regularity
+and Hessian symmetry needed above. -/
+theorem berry_curvature_C2 {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : V → E) (x u v : V) (hn : ContDiffAt ℝ 2 n x)
+    (hunit : ∀ y, inner ℂ (n y) (n y) = 1) :
+    (fderiv ℝ (fun y => inner ℂ (n y) (fderiv ℝ n y v)) x u).im -
+      (fderiv ℝ (fun y => inner ℂ (n y) (fderiv ℝ n y u)) x v).im =
+      2*(projectiveTensor n x u v).im := by
+  apply berry_curvature_fderiv n x u v
+  · exact hn.differentiableAt (by norm_num)
+  · exact (hn.fderiv_right (m := 1) (by norm_num)).differentiableAt (by norm_num)
+  · exact hn.isSymmSndFDerivAt (by simp [minSmoothness])
+  · exact hunit
+
+/-- Actual complex finite multiplet inner product. -/
+theorem finite_inner_re_im {ι : Type*} [Fintype ι]
+    (u v : EuclideanSpace ℂ ι) :
+    (inner ℂ u v).re = ∑ i, ((u i).re*(v i).re+(u i).im*(v i).im) ∧
+    (inner ℂ u v).im = ∑ i, ((u i).re*(v i).im-(u i).im*(v i).re) := by
+  rw [PiLp.inner_apply]
+  constructor
+  · rw [Complex.re_sum]
+    apply Finset.sum_congr rfl
+    intro i hi
+    simp [RCLike.inner_apply, Complex.mul_re]
+    ring
+  · rw [Complex.im_sum]
+    apply Finset.sum_congr rfl
+    intro i hi
+    simp [RCLike.inner_apply, Complex.mul_im]
+    ring
+
+/-- Finite weighted real and imaginary Gram components computed
+from actual complex vectors. The log-amplitude and phase slopes
+are encoded as componentwise complex logarithmic derivative data. -/
+theorem finite_horizontal_covariance {ι : Type*} [Fintype ι]
+    (n U V : EuclideanSpace ℂ ι) (q a b c d : ι → ℝ) (Q : ℝ)
+    (hu : ∀ i, U i = n i * ⟨a i,b i⟩)
+    (hv : ∀ i, V i = n i * ⟨c i,d i⟩)
+    (hq : ∀ i, Q*((n i).re^2+(n i).im^2) = q i) :
+    Q*(inner ℂ U V).re = ∑ i, q i*(a i*c i+b i*d i) ∧
+    Q*(inner ℂ U V).im = ∑ i, q i*(a i*d i-b i*c i) := by
+  obtain ⟨hre,him⟩ := finite_inner_re_im U V
+  constructor
+  · rw [hre, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro i hi
+    rw [hu i,hv i]
+    simp only [Complex.mul_re, Complex.mul_im]
+    linear_combination (a i*c i+b i*d i)*hq i
+  · rw [him, Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro i hi
+    rw [hu i,hv i]
+    simp only [Complex.mul_re, Complex.mul_im]
+    linear_combination (a i*d i-b i*c i)*hq i
+
+/-- Componentwise horizontal projection subtracts the actual Berry
+coefficient. This derives centered slopes rather than assuming
+the horizontal vectors themselves. -/
+theorem finite_projected_component {ι : Type*} [Fintype ι]
+    (n U : EuclideanSpace ℂ ι) (a b : ι → ℝ) (B : ℝ)
+    (hU : ∀ i, U i = n i*⟨a i,b i⟩)
+    (hB : inner ℂ n U = ⟨0,B⟩) (i : ι) :
+    horizontalProjection n U i = n i*⟨a i,b i-B⟩ := by
+  unfold horizontalProjection
+  rw [PiLp.sub_apply, PiLp.smul_apply, hB, hU i]
+  change n i*⟨a i,b i⟩- (⟨0,B⟩:ℂ)*n i = _
+  apply Complex.ext <;> simp [Complex.mul_re, Complex.mul_im, Complex.sub_re, Complex.sub_im] <;> ring
+
+/-- The actual differential projective tensor equals the weighted
+centered amplitude-phase covariance, including its imaginary part.
+The normalized-state component slope identities and Berry means
+are explicit hypotheses, not hidden axioms. -/
+theorem projective_tensor_finite_covariance {ι V : Type*} [Fintype ι]
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    (n : V → EuclideanSpace ℂ ι) (x u v : V)
+    (q a b c d : ι → ℝ) (Q B D : ℝ)
+    (hu : ∀ i, fderiv ℝ n x u i = n x i*⟨a i,b i⟩)
+    (hv : ∀ i, fderiv ℝ n x v i = n x i*⟨c i,d i⟩)
+    (hB : inner ℂ (n x) (fderiv ℝ n x u) = ⟨0,B⟩)
+    (hD : inner ℂ (n x) (fderiv ℝ n x v) = ⟨0,D⟩)
+    (hq : ∀ i, Q*((n x i).re^2+(n x i).im^2) = q i) :
+    Q*(projectiveTensor n x u v).re =
+      ∑ i, q i*(a i*c i+(b i-B)*(d i-D)) ∧
+    Q*(projectiveTensor n x u v).im =
+      ∑ i, q i*(a i*(d i-D)-(b i-B)*c i) := by
+  unfold projectiveTensor projectivePullback
+  exact finite_horizontal_covariance (n x)
+    (horizontalProjection (n x) (fderiv ℝ n x u))
+    (horizontalProjection (n x) (fderiv ℝ n x v))
+    q a (fun i => b i-B) c (fun i => d i-D) Q
+    (fun i => finite_projected_component _ _ a b B hu hB i)
+    (fun i => finite_projected_component _ _ c d D hv hD i) hq
+
+/-- Berry mean derived from the actual complex finite inner product,
+rather than supplied independently. -/
+theorem finite_berry_mean {ι : Type*} [Fintype ι]
+    (n U : EuclideanSpace ℂ ι) (a b : ι → ℝ)
+    (hU : ∀ i, U i = n i*⟨a i,b i⟩)
+    (ha : (∑ i, ((n i).re^2+(n i).im^2)*a i) = 0) :
+    inner ℂ n U = ⟨0,∑ i, ((n i).re^2+(n i).im^2)*b i⟩ := by
+  obtain ⟨hr,hi⟩ := finite_inner_re_im n U
+  apply Complex.ext
+  · change (inner ℂ n U).re = 0
+    rw [hr, ← ha]
+    apply Finset.sum_congr rfl
+    intro i hi'
+    rw [hU i]
+    simp only [Complex.mul_re, Complex.mul_im]
+    ring
+  · change (inner ℂ n U).im = _
+    rw [hi]
+    apply Finset.sum_congr rfl
+    intro i hi'
+    rw [hU i]
+    simp only [Complex.mul_re, Complex.mul_im]
+    ring
+
+/-- Normalization and the actual derivative imply that the real
+log-amplitude slopes are centered. The phase mean is therefore
+computed solely from the component slope data. -/
+theorem finite_normalized_berry_mean {ι V : Type*} [Fintype ι]
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    (n : V → EuclideanSpace ℂ ι) (x u : V) (a b : ι → ℝ)
+    (hn : DifferentiableAt ℝ n x) (hunit : ∀ y, inner ℂ (n y) (n y) = 1)
+    (hu : ∀ i, fderiv ℝ n x u i = n x i*⟨a i,b i⟩) :
+    inner ℂ (n x) (fderiv ℝ n x u) =
+      ⟨0,∑ i, ((n x i).re^2+(n x i).im^2)*b i⟩ := by
+  apply finite_berry_mean _ _ a b hu
+  have hzero := normalized_fderiv_vertical_real_zero n x u hn hunit
+  rw [(finite_inner_re_im (n x) (fderiv ℝ n x u)).1] at hzero
+  rw [← hzero]
+  apply Finset.sum_congr rfl
+  intro i hi
+  rw [hu i]
+  simp only [Complex.mul_re, Complex.mul_im]
+  ring
+
+/-- Full local-lift covariance identity, deriving the Berry means
+from differentiability and normalization. a,c are the centered
+log-amplitude slopes of the normalized multiplet. -/
+theorem projective_tensor_normalized_covariance {ι V : Type*} [Fintype ι]
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    (n : V → EuclideanSpace ℂ ι) (x u v : V)
+    (q a b c d : ι → ℝ) (Q : ℝ)
+    (hn : DifferentiableAt ℝ n x) (hunit : ∀ y, inner ℂ (n y) (n y) = 1)
+    (hu : ∀ i, fderiv ℝ n x u i = n x i*⟨a i,b i⟩)
+    (hv : ∀ i, fderiv ℝ n x v i = n x i*⟨c i,d i⟩)
+    (hq : ∀ i, Q*((n x i).re^2+(n x i).im^2) = q i) :
+    let B := ∑ i, ((n x i).re^2+(n x i).im^2)*b i
+    let D := ∑ i, ((n x i).re^2+(n x i).im^2)*d i
+    Q*(projectiveTensor n x u v).re =
+      ∑ i, q i*(a i*c i+(b i-B)*(d i-D)) ∧
+    Q*(projectiveTensor n x u v).im =
+      ∑ i, q i*(a i*(d i-D)-(b i-B)*c i) := by
+  dsimp
+  exact projective_tensor_finite_covariance n x u v q a b c d Q _ _
+    hu hv (finite_normalized_berry_mean n x u a b hn hunit hu)
+    (finite_normalized_berry_mean n x v c d hn hunit hv) hq
+
+/-- Gauge equivalence of normalized first jets: same phase and arbitrary
+vertical derivative. The quotient is of first jets, not a claimed
+smooth atlas on complex projective space. -/
+def ProjectiveJet {V E : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E] :=
+  { p : E × (V →L[ℝ] E) // inner ℂ p.1 p.1 = 1 }
+
+def projectiveJetRel {V E : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (j k : ProjectiveJet (V := V) (E := E)) : Prop :=
+  ∃ (c : ℂ) (d : V → ℂ), star c*c = 1 ∧ k.val.1 = c • j.val.1 ∧
+    ∀ w, k.val.2 w = c • j.val.2 w+d w • j.val.1
+
+/-- The pullback tensor descends to the quotient generated by the
+phase/vertical gauge relation on normalized first jets. -/
+noncomputable def quotientJetTensor {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (j : Quot (projectiveJetRel (V := V) (E := E))) (u v : V) : ℂ :=
+  Quot.lift (fun k => projectivePullback k.val.1 k.val.2 u v)
+    (by
+      intro j k h
+      obtain ⟨c,d,hc,hn,hD⟩ := h
+      rw [hn]
+      exact (projective_pullback_gauge j.val.1 j.val.2 k.val.2 c d u v
+        j.property hc hD).symm) j
+
+theorem quotient_jet_tensor_rep {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (j : ProjectiveJet (V := V) (E := E)) (u v : V) :
+    quotientJetTensor (Quot.mk _ j) u v =
+      projectivePullback j.val.1 j.val.2 u v := rfl
+
 end MicroMacro
 
 #print axioms MicroMacro.centered_shift
@@ -1774,3 +2108,20 @@ end MicroMacro
 #print axioms MicroMacro.inverse_metric_contraction
 #print axioms MicroMacro.local_metric_stress_divergence
 #print axioms MicroMacro.local_metric_stress_on_shell
+#print axioms MicroMacro.projective_tensor_gauge_fderiv
+#print axioms MicroMacro.projective_tensor_reparam
+#print axioms MicroMacro.projective_tensor_hermitian
+#print axioms MicroMacro.projective_tensor_nonnegative
+#print axioms MicroMacro.normalized_fderiv_vertical_real_zero
+#print axioms MicroMacro.horizontal_gram_subtract
+#print axioms MicroMacro.horizontal_gram_imaginary
+#print axioms MicroMacro.berry_curvature_fderiv
+#print axioms MicroMacro.berry_curvature_C2
+#print axioms MicroMacro.finite_inner_re_im
+#print axioms MicroMacro.finite_horizontal_covariance
+#print axioms MicroMacro.finite_projected_component
+#print axioms MicroMacro.projective_tensor_finite_covariance
+#print axioms MicroMacro.finite_berry_mean
+#print axioms MicroMacro.finite_normalized_berry_mean
+#print axioms MicroMacro.projective_tensor_normalized_covariance
+#print axioms MicroMacro.quotient_jet_tensor_rep
