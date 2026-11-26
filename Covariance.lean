@@ -2113,8 +2113,9 @@ noncomputable def projectiveAffineEquiv {E : Type*}
     obtain ⟨c,hc⟩ := Projectivization.exists_smul_eq_mk_rep ℂ v.val hv
     have he : ell p.rep = (c:ℂ)*ell v.val := by
       have hc' : (c:ℂ) • v.val = p.rep := hc
-      rw [← hc', map_smul]
-      rfl
+      calc
+        ell p.rep = ell ((c:ℂ) • v.val) := congrArg ell hc'.symm
+        _ = (c:ℂ)*ell v.val := by simp [map_smul, smul_eq_mul]
     rw [h,v.property,mul_one] at he
     exact Units.ne_zero c he.symm
   left_inv p := by

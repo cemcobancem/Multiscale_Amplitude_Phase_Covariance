@@ -1,7 +1,7 @@
 name: Lean proof check
 on:
   push:
-    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation]
+    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation, paper-i-step2-projective-geometry, paper-i-step2-projective-charts]
   pull_request:
   workflow_dispatch:
 permissions:
