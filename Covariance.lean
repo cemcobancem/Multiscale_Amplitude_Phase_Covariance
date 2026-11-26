@@ -1389,7 +1389,7 @@ theorem log_count_monotone (x B : ℝ) (hx : x ≤ B) :
 /-- An eventual RH-type estimate implies the global zero-extended
 estimate used by the verified heat-trace theorem. The finite interval
 is handled explicitly, rather than assuming the stronger hypothesis. -/
-theorem eventual_prime_bound_global (C B : ℝ) (hC : 0 ≤ C) (hB : 2 ≤ B)
+theorem eventual_prime_bound_global (C B : ℝ) (hC : 0 ≤ C) (_hB : 2 ≤ B)
     (h : ∀ x : ℝ, B ≤ x → |strictPrimeCount x-logCount x| ≤
       C*x^(1/2:ℝ)*Real.log x) :
     ∃ D : ℝ, 0 ≤ D ∧ ∀ x : ℝ, 0 < x →
@@ -1444,6 +1444,253 @@ theorem prime_heat_trace_eventual_rh (C B : ℝ) (hC : 0 ≤ C) (hB : 2 ≤ B)
   obtain ⟨D, hD, hglobal⟩ := eventual_prime_bound_global C B hC hB h
   exact ⟨D, hD, fun τ hτ hsmall =>
     prime_heat_trace_conditional_rh D τ hD hτ hsmall hglobal⟩
+
+
+/-- Cancellation identity for the first index of a contracted inverse
+metric derivative. This is a finite reindexing identity. -/
+theorem connection_contract_first {d : Type*} (s : Finset d)
+    (Γ A : d → d → ℝ) (p q : d → ℝ) :
+    (s.sum fun i => s.sum fun j =>
+      (s.sum fun l => Γ l i*A l j)*p i*q j) =
+    (s.sum fun i => s.sum fun j =>
+      A i j*(s.sum fun l => Γ i l*p l)*q j) := by
+  calc
+    _ = (s.sum fun i => s.sum fun j => s.sum fun l =>
+        Γ l i*A l j*p i*q j) := by
+      apply Finset.sum_congr rfl
+      intro i hi
+      apply Finset.sum_congr rfl
+      intro j hj
+      rw [Finset.sum_mul, Finset.sum_mul]
+    _ = (s.sum fun i => s.sum fun l => s.sum fun j =>
+        Γ l i*A l j*p i*q j) := by
+      apply Finset.sum_congr rfl
+      intro i hi
+      exact Finset.sum_comm
+    _ = (s.sum fun l => s.sum fun i => s.sum fun j =>
+        Γ l i*A l j*p i*q j) := Finset.sum_comm
+    _ = (s.sum fun i => s.sum fun j => s.sum fun l =>
+        Γ i l*A i j*p l*q j) := by
+      apply Finset.sum_congr rfl
+      intro i hi
+      exact Finset.sum_comm
+    _ = _ := by
+      apply Finset.sum_congr rfl
+      intro i hi
+      apply Finset.sum_congr rfl
+      intro j hj
+      rw [Finset.mul_sum, Finset.sum_mul]
+      apply Finset.sum_congr rfl
+      intro l hl
+      ring
+
+/-- Cancellation identity for the second index. -/
+theorem connection_contract_second {d : Type*} (s : Finset d)
+    (Γ A : d → d → ℝ) (p q : d → ℝ) :
+    (s.sum fun i => s.sum fun j =>
+      (s.sum fun l => Γ l j*A i l)*p i*q j) =
+    (s.sum fun i => s.sum fun j =>
+      A i j*p i*(s.sum fun l => Γ j l*q l)) := by
+  apply Finset.sum_congr rfl
+  intro i hi
+  calc
+    _ = (s.sum fun j => s.sum fun l => Γ l j*A i l*p i*q j) := by
+      apply Finset.sum_congr rfl
+      intro j hj
+      rw [Finset.sum_mul, Finset.sum_mul]
+    _ = (s.sum fun l => s.sum fun j => Γ l j*A i l*p i*q j) :=
+      Finset.sum_comm
+    _ = _ := by
+      apply Finset.sum_congr rfl
+      intro j hj
+      rw [Finset.mul_sum]
+      apply Finset.sum_congr rfl
+      intro l hl
+      ring
+
+/-- Derive the kinetic-trace differentiation formula from explicit
+inverse-metric compatibility. A is the inverse metric at the point;
+dA is its ordinary derivative in a fixed chart direction. -/
+theorem covariant_kinetic_trace_jet {d : Type*} (s : Finset d)
+    (Γ A dA : d → d → ℝ) (p dp : d → ℝ)
+    (hA : ∀ i j, dA i j = -(s.sum fun l => Γ l i*A l j)-
+      (s.sum fun l => Γ l j*A i l)) :
+    (s.sum fun i => s.sum fun j =>
+      dA i j*p i*p j+A i j*(dp i*p j+p i*dp j)) =
+    (s.sum fun i => s.sum fun j => A i j*
+      (covectorConnection s Γ p dp i*p j+
+        p i*covectorConnection s Γ p dp j)) := by
+  have hl : (s.sum fun i => s.sum fun j =>
+      dA i j*p i*p j+A i j*(dp i*p j+p i*dp j)) =
+      (s.sum fun i => s.sum fun j =>
+        A i j*(dp i*p j+p i*dp j)-
+          (s.sum fun l => Γ l i*A l j)*p i*p j-
+          (s.sum fun l => Γ l j*A i l)*p i*p j) := by
+    apply Finset.sum_congr rfl
+    intro i hi
+    apply Finset.sum_congr rfl
+    intro j hj
+    rw [hA]
+    ring
+  have hr : (s.sum fun i => s.sum fun j => A i j*
+      (covectorConnection s Γ p dp i*p j+
+        p i*covectorConnection s Γ p dp j)) =
+      (s.sum fun i => s.sum fun j =>
+        A i j*(dp i*p j+p i*dp j)-
+          A i j*(s.sum fun l => Γ i l*p l)*p j-
+          A i j*p i*(s.sum fun l => Γ j l*p l)) := by
+    apply Finset.sum_congr rfl
+    intro i hi
+    apply Finset.sum_congr rfl
+    intro j hj
+    unfold covectorConnection
+    ring
+  rw [hl, hr]
+  simp only [Finset.sum_sub_distrib]
+  rw [connection_contract_first s Γ A p p,
+    connection_contract_second s Γ A p p]
+
+/-- Actual derivative of the contracted kinetic-plus-mass scalar
+along a chart line. The connection terms cancel by the preceding
+theorem; the derivative of the scalar trace is not assumed. -/
+theorem covariant_trace_actual_derivative {d : Type*} (s : Finset d)
+    (Γ : d → d → ℝ) (A : d → d → ℝ → ℝ)
+    (p : d → ℝ → ℝ) (u : ℝ → ℝ)
+    (dA : d → d → ℝ) (dp : d → ℝ) (du m2 t : ℝ)
+    (ha : ∀ i j, HasDerivAt (A i j) (dA i j) t)
+    (hp : ∀ i, HasDerivAt (p i) (dp i) t)
+    (hu : HasDerivAt u du t)
+    (hcompat : ∀ i j, dA i j = -(s.sum fun l => Γ l i*A l j t)-
+      (s.sum fun l => Γ l j*A i l t)) :
+    HasDerivAt (fun x => (s.sum fun i => s.sum fun j =>
+        A i j x*(p i x*p j x))+m2*(u x*u x))
+      ((s.sum fun i => s.sum fun j => A i j t*
+        (covectorConnection s Γ (fun k => p k t) dp i*p j t+
+          p i t*covectorConnection s Γ (fun k => p k t) dp j))+
+        2*m2*u t*du) t := by
+  have hsum : HasDerivAt (fun x => s.sum fun i => s.sum fun j =>
+        A i j x*(p i x*p j x))
+      (s.sum fun i => s.sum fun j =>
+        dA i j*p i t*p j t+A i j t*(dp i*p j t+p i t*dp j)) t := by
+    apply HasDerivAt.fun_sum
+    intro i hi
+    apply HasDerivAt.fun_sum
+    intro j hj
+    have hd := (ha i j).mul ((hp i).mul (hp j))
+    simp only [Pi.mul_apply] at hd
+    convert hd using 1
+    ring
+  have hmass : HasDerivAt (fun x => m2*(u x*u x)) (2*m2*u t*du) t := by
+    convert (hu.mul hu).const_mul m2 using 1 <;> ring
+  have h := hsum.add hmass
+  rw [covariant_kinetic_trace_jet s Γ (fun i j => A i j t) dA
+    (fun i => p i t) dp hcompat] at h
+  exact h
+
+/-- Symmetry of the inverse metric combines the two derivative terms. -/
+theorem symmetric_kinetic_trace {d : Type*} (s : Finset d)
+    (A : d → d → ℝ) (p H : d → ℝ)
+    (hsym : ∀ i j, A i j = A j i) :
+    (s.sum fun i => s.sum fun j => A i j*(H i*p j+p i*H j)) =
+    (s.sum fun i => s.sum fun j => A i j*(2*p j*H i)) := by
+  have hswap : (s.sum fun i => s.sum fun j => A i j*(p i*H j)) =
+      (s.sum fun i => s.sum fun j => A i j*(H i*p j)) := by
+    calc
+      _ = (s.sum fun j => s.sum fun i => A i j*(p i*H j)) :=
+        Finset.sum_comm
+      _ = _ := by
+        apply Finset.sum_congr rfl
+        intro i hi
+        apply Finset.sum_congr rfl
+        intro j hj
+        rw [hsym j i]
+        ring
+  have hleft : (s.sum fun i => s.sum fun j => A i j*(H i*p j+p i*H j)) =
+      (s.sum fun i => s.sum fun j => A i j*(H i*p j))+
+      (s.sum fun i => s.sum fun j => A i j*(p i*H j)) := by
+    simp only [mul_add, Finset.sum_add_distrib]
+  rw [hleft, hswap, ← Finset.sum_add_distrib]
+  apply Finset.sum_congr rfl
+  intro i hi
+  rw [← Finset.sum_add_distrib]
+  apply Finset.sum_congr rfl
+  intro j hj
+  ring
+
+/-- Actual inverse metric contraction, not an assumed trace equality. -/
+theorem inverse_metric_contraction {d : Type*} [DecidableEq d]
+    (s : Finset d) (A g : d → d → ℝ) (z : d → ℝ)
+    (ν : d) (hν : ν ∈ s)
+    (hinv : ∀ i, (s.sum fun j => A i j*g j ν) =
+      if i = ν then 1 else 0) :
+    (s.sum fun i => s.sum fun j => A i j*(g j ν*z i)) = z ν := by
+  calc
+    _ = (s.sum fun i => (s.sum fun j => A i j*g j ν)*z i) := by
+      apply Finset.sum_congr rfl
+      intro i hi
+      rw [Finset.sum_mul]
+      apply Finset.sum_congr rfl
+      intro j hj
+      ring
+    _ = (s.sum fun i => (if i = ν then 1 else 0)*z i) := by
+      apply Finset.sum_congr rfl
+      intro i hi
+      rw [hinv]
+    _ = _ := by simp [ite_mul, hν]
+
+/-- Local contracted stress identity with inverse metric and symmetric
+Hessian. The trace derivative is explicitly the expression obtained
+by covariant_trace_actual_derivative. -/
+theorem local_metric_stress_divergence {d : Type*} [DecidableEq d]
+    (s : Finset d) (A g : d → d → ℝ) (p : d → ℝ)
+    (H : d → d → ℝ) (m2 u : ℝ) (ν : d) (hν : ν ∈ s)
+    (hA : ∀ i j, A i j = A j i)
+    (hH : ∀ i j, H i j = H j i)
+    (hinv : ∀ i, (s.sum fun j => A i j*g j ν) =
+      if i = ν then 1 else 0) :
+    (s.sum fun i => s.sum fun j => A i j*
+      (2*(H i j*p ν+p j*H i ν)-g j ν*
+        ((s.sum fun a => s.sum fun b => A a b*(H i a*p b+p a*H i b))+
+          2*m2*u*p i))) =
+      2*((s.sum fun i => s.sum fun j => A i j*H i j)-m2*u)*p ν := by
+  let z : d → ℝ := fun i =>
+    (s.sum fun a => s.sum fun b => A a b*(H i a*p b+p a*H i b))+2*m2*u*p i
+  change (s.sum fun i => s.sum fun j => A i j*
+    (2*(H i j*p ν+p j*H i ν)-g j ν*z i)) = _
+  have hz : z ν = (s.sum fun i => s.sum fun j =>
+      A i j*(2*p j*H ν i))+2*m2*u*p ν := by
+    dsimp [z]
+    rw [symmetric_kinetic_trace s A p (H ν) hA]
+  calc
+    _ = (s.sum fun i => s.sum fun j => A i j*(2*(H i j*p ν+p j*H i ν)))-
+        (s.sum fun i => s.sum fun j => A i j*(g j ν*z i)) := by
+      simp only [mul_sub, Finset.sum_sub_distrib]
+    _ = (s.sum fun i => s.sum fun j => A i j*(2*(H i j*p ν+p j*H i ν)))-z ν := by
+      rw [inverse_metric_contraction s A g z ν hν hinv]
+    _ = (s.sum fun i => s.sum fun j => A i j*
+        (2*(H i j*p ν+p j*H i ν)-2*p j*H ν i))-2*m2*u*p ν := by
+      rw [hz]
+      simp only [mul_sub, Finset.sum_sub_distrib]
+      abel
+    _ = _ := covariant_scalar_divergence_jet s A p H m2 u ν hH
+
+/-- On-shell local conservation for a general inverse metric. This is
+a contraction-level theorem with explicit compatibility assumptions,
+not a global manifold construction. -/
+theorem local_metric_stress_on_shell {d : Type*} [DecidableEq d]
+    (s : Finset d) (A g : d → d → ℝ) (p : d → ℝ)
+    (H : d → d → ℝ) (m2 u : ℝ) (ν : d) (hν : ν ∈ s)
+    (hA : ∀ i j, A i j = A j i)
+    (hH : ∀ i j, H i j = H j i)
+    (hinv : ∀ i, (s.sum fun j => A i j*g j ν) =
+      if i = ν then 1 else 0)
+    (hkg : (s.sum fun i => s.sum fun j => A i j*H i j) = m2*u) :
+    (s.sum fun i => s.sum fun j => A i j*
+      (2*(H i j*p ν+p j*H i ν)-g j ν*
+        ((s.sum fun a => s.sum fun b => A a b*(H i a*p b+p a*H i b))+
+          2*m2*u*p i))) = 0 := by
+  rw [local_metric_stress_divergence s A g p H m2 u ν hν hA hH hinv, hkg]
+  ring
 
 end MicroMacro
 
@@ -1519,3 +1766,11 @@ end MicroMacro
 #print axioms MicroMacro.log_count_monotone
 #print axioms MicroMacro.eventual_prime_bound_global
 #print axioms MicroMacro.prime_heat_trace_eventual_rh
+#print axioms MicroMacro.connection_contract_first
+#print axioms MicroMacro.connection_contract_second
+#print axioms MicroMacro.covariant_kinetic_trace_jet
+#print axioms MicroMacro.covariant_trace_actual_derivative
+#print axioms MicroMacro.symmetric_kinetic_trace
+#print axioms MicroMacro.inverse_metric_contraction
+#print axioms MicroMacro.local_metric_stress_divergence
+#print axioms MicroMacro.local_metric_stress_on_shell
