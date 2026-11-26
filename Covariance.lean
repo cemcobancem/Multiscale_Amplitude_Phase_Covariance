@@ -833,8 +833,12 @@ theorem exponential_tail_integral (a τ : ℝ) (hτ : 0 < τ) :
     convert h.exp.neg using 1
     ring
   have hl : Filter.Tendsto (fun x : ℝ => -Real.exp (-τ*x)) Filter.atTop (nhds 0) := by
-    have hlin : Filter.Tendsto (fun x : ℝ => τ*x) Filter.atTop Filter.atTop :=
-      (tendsto_id : Filter.Tendsto (fun x : ℝ => x) Filter.atTop Filter.atTop).const_mul_atTop_of_pos hτ
+    have hlin : Filter.Tendsto (fun x : ℝ => τ*x) Filter.atTop Filter.atTop := by
+      apply Filter.tendsto_atTop_atTop.2
+      intro b
+      refine ⟨b/τ, ?_⟩
+      intro x hx
+      simpa [mul_comm] using (div_le_iff₀ hτ).mp hx
     have hex := (Real.tendsto_exp_neg_atTop_nhds_zero.comp hlin).neg
     simpa [Function.comp_def, neg_mul] using hex
   have hpos : ∀ x ∈ Set.Ioi a, 0 ≤ τ*Real.exp (-τ*x) :=
