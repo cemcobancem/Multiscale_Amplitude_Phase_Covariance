@@ -1,0 +1,3 @@
+# Candidate geometry and differential extension
+
+Seven additional declarations address finite complex Cauchy–Schwarz, the induced weighted curvature inequality, an actual one-variable derivative of normalized weights, flat scalar divergence and its on-shell specialization at jet level, centered cross moments and phase curvature at jet level. The jet statements assume that the derivative data are realized by smooth fields; they do not formalize arbitrary Lorentzian manifolds or covariant derivatives. The Riemann heat-trace benchmark remains unformalized. Verification of this extension is pending its own CI results.

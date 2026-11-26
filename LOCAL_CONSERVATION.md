@@ -1,0 +1,3 @@
+# Local conservation contraction extension
+
+Adds eight candidate proofs of inverse metric contraction, connection cancellation, actual kinetic trace differentiation, and the contracted scalar divergence identity. The last theorem proves on-shell conservation of the explicit local expression under inverse metric and Hessian symmetry. The earlier chart-line stress derivative and actual trace derivative justify the expression independently. A full smooth Lorentzian manifold with chart transition laws, Levi-Civita existence, and the final composition theorem over actual scalar fields remain outside the verified scope. CI pending.

@@ -1,0 +1,5 @@
+# Conservation and directional-derivative extension
+
+Four new candidate theorems: real Cauchy–Schwarz, ensemble causal energy flux in an orthonormal frame, actual differentiation of normalized weights with a sum-defined total, and the actual directional derivative version of the phase-curvature identity. The last theorem explicitly assumes the data on the two coordinate lines have equal common values and equal mixed phase derivatives; it is not yet a manifold-level exterior derivative formalization. The finite energy theorem includes arbitrary finite covectors; nonnegative weights may be absorbed by scaling each covector by its square root. No new physical axioms are introduced.
+
+The 23-theorem main checkpoint passed at commit e933dc26d273a8f73b59b11259cdd8c17ab1b9a3, run 45882145390. The repaired 30-theorem checkpoint and this extension require their own successful CI runs and axiom audits before being classified as verified. Full curved-spacetime conservation, on-shell field construction, and the RH-dependent analytic heat trace are still open formalization tasks.
