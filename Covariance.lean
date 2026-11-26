@@ -925,6 +925,219 @@ theorem conservation_exchange_linear {V W : Type*}
     D M = D M+D R-D R := by abel
     _ = -D R := by rw [he, zero_sub]
 
+
+/-- Strict real prime-counting staircase (p < x). At integers it differs
+from the inclusive staircase by at most one; that distinction is immaterial
+to the ordinary Lebesgue integral. -/
+noncomputable def strictPrimeCount (x : ℝ) : ℝ :=
+  (Nat.primeCounting' (Nat.ceil x) : ℝ)
+
+/-- Logarithmic integral normalized at 2, extended by zero below 2. -/
+noncomputable def logCount (x : ℝ) : ℝ :=
+  ∫ y in Set.Ioo (2:ℝ) x, (Real.log y)⁻¹
+
+theorem prime_staircase_count (x w : ℝ) :
+    (∑' n : ℕ, (Set.Ioi (Nat.nth Nat.Prime n : ℝ)).indicator
+      (fun _ => w) x) = w*strictPrimeCount x := by
+  classical
+  let N := Nat.primeCounting' (Nat.ceil x)
+  have hiff (n : ℕ) : (Nat.nth Nat.Prime n : ℝ) < x ↔ n < N := by
+    rw [← Nat.lt_ceil]
+    exact (Nat.lt_nth_iff_count_lt Nat.infinite_setOf_prime).symm
+  have hval (n : ℕ) : (Set.Ioi (Nat.nth Nat.Prime n : ℝ)).indicator
+      (fun _ => w) x = if n < N then w else 0 := by
+    simp [Set.indicator, hiff n]
+  calc
+    _ = ∑ n ∈ Finset.range N, (Set.Ioi (Nat.nth Nat.Prime n : ℝ)).indicator
+        (fun _ => w) x := by
+      apply tsum_eq_sum
+      intro n hn
+      have hnot : ¬ n < N := fun h => hn (Finset.mem_range.mpr h)
+      rw [hval, if_neg hnot]
+    _ = ∑ n ∈ Finset.range N, w := by
+      apply Finset.sum_congr rfl
+      intro n hn
+      rw [hval, if_pos (Finset.mem_range.mp hn)]
+    _ = _ := by simp [strictPrimeCount, N, nsmul_eq_mul, mul_comm]
+
+/-- The prime heat trace equals the Laplace integral of the strict
+prime-counting function. The integral is genuinely convergent. -/
+theorem prime_heat_trace_counting (τ : ℝ) (hτ : 0 < τ) :
+    MeasureTheory.IntegrableOn (fun x => τ*Real.exp (-τ*x)*strictPrimeCount x)
+      (Set.Ioi (0:ℝ)) ∧
+    (∑' n : ℕ, Real.exp (-τ*(Nat.nth Nat.Prime n : ℝ))) =
+      ∫ x in Set.Ioi (0:ℝ), τ*Real.exp (-τ*x)*strictPrimeCount x := by
+  let K : ℝ → ℝ := fun x => τ*Real.exp (-τ*x)
+  have hcount : (∑' n : ℕ, Real.exp (-τ*(Nat.nth Nat.Prime n : ℝ))) =
+      ∫ x : ℝ, K x*strictPrimeCount x := by
+    rw [prime_heat_trace_staircase τ hτ]
+    apply MeasureTheory.integral_congr_ae
+    filter_upwards [] with x
+    exact prime_staircase_count x (K x)
+  have hset : (∫ x : ℝ, K x*strictPrimeCount x) =
+      ∫ x in Set.Ioi (0:ℝ), K x*strictPrimeCount x := by
+    rw [← MeasureTheory.integral_indicator measurableSet_Ioi]
+    apply MeasureTheory.integral_congr_ae
+    filter_upwards [] with x
+    by_cases hx : 0 < x
+    · simp [Set.indicator, hx]
+    · have hzero : strictPrimeCount x = 0 := by
+        simp [strictPrimeCount, Nat.ceil_eq_zero.mpr (le_of_not_gt hx), Nat.primeCounting']
+      simp [Set.indicator, hx, hzero]
+  have heq := hcount.trans hset
+  have hs : Summable (fun n : ℕ => Real.exp (-τ*(Nat.nth Nat.Prime n : ℝ))) := by
+    apply Real.summable_exp_nat_mul_of_ge (neg_neg_of_pos hτ)
+    intro n
+    exact_mod_cast (show n ≤ Nat.nth Nat.Prime n from
+      le_trans (Nat.le_add_right n 2) (Nat.add_two_le_nth_prime n))
+  have hp : 0 < ∑' n : ℕ, Real.exp (-τ*(Nat.nth Nat.Prime n : ℝ)) :=
+    hs.tsum_pos (fun _ => (Real.exp_pos _).le) 0 (Real.exp_pos _)
+  have hi : MeasureTheory.IntegrableOn (fun x => K x*strictPrimeCount x)
+      (Set.Ioi (0:ℝ)) :=
+    MeasureTheory.Integrable.of_integral_ne_zero (heq ▸ hp.ne')
+  exact ⟨hi, heq⟩
+
+/-- The continuous comparison density 1/log p, p > 2, has the exact
+Laplace representation via logCount. Both integrability and the
+interchange of integrals are established by Fubini's theorem. -/
+theorem smooth_heat_trace_counting (τ : ℝ) (hτ : 0 < τ) :
+    MeasureTheory.IntegrableOn (fun x => τ*Real.exp (-τ*x)*logCount x)
+      (Set.Ioi (0:ℝ)) ∧
+    (∫ p in Set.Ioi (2:ℝ), Real.exp (-τ*p)/Real.log p) =
+      ∫ x in Set.Ioi (0:ℝ), τ*Real.exp (-τ*x)*logCount x := by
+  let K : ℝ → ℝ := fun x => τ*Real.exp (-τ*x)
+  let ν : MeasureTheory.Measure ℝ := MeasureTheory.volume.restrict (Set.Ioi (2:ℝ))
+  let F : ℝ → ℝ → ℝ := fun p x => if p < x then (Real.log p)⁻¹*K x else 0
+  have hm : Measurable (Function.uncurry F) := by
+    change Measurable (fun z : ℝ × ℝ =>
+      if z.1 < z.2 then (Real.log z.1)⁻¹*(τ*Real.exp (-τ*z.2)) else 0)
+    exact Measurable.ite (measurableSet_lt measurable_fst measurable_snd)
+      (by fun_prop) measurable_const
+  have hform (p : ℝ) : F p = fun x =>
+      (Real.log p)⁻¹*(Set.Ioi p).indicator K x := by
+    funext x
+    by_cases hx : p < x <;> simp [F, Set.indicator, hx]
+  have hFi (p : ℝ) : MeasureTheory.Integrable (F p) := by
+    rw [hform]
+    exact ((MeasureTheory.integrable_indicator_iff measurableSet_Ioi).2
+      (exponential_tail_integral p τ hτ).1).const_mul _
+  have hFe (p : ℝ) : (∫ x, F p x) = (Real.log p)⁻¹*Real.exp (-τ*p) := by
+    rw [hform, MeasureTheory.integral_const_mul,
+      MeasureTheory.integral_indicator measurableSet_Ioi]
+    rw [show (∫ x in Set.Ioi p, K x) = Real.exp (-τ*p) from
+      (exponential_tail_integral p τ hτ).2]
+  have hFn (p : ℝ) (hp : p ∈ Set.Ioi (2:ℝ)) :
+      (∫ x, ‖F p x‖) = (Real.log p)⁻¹*Real.exp (-τ*p) := by
+    rw [← hFe]
+    apply MeasureTheory.integral_congr_ae
+    filter_upwards [] with x
+    have hp' : 2 < p := hp
+    have hl : 0 ≤ (Real.log p)⁻¹ := inv_nonneg.mpr (Real.log_pos (by linarith)).le
+    rw [Real.norm_eq_abs, abs_of_nonneg]
+    dsimp [F]
+    split_ifs
+    · exact mul_nonneg hl (mul_nonneg hτ.le (Real.exp_pos _).le)
+    · exact le_rfl
+  have hM : MeasureTheory.Integrable (fun p => (Real.log (2:ℝ))⁻¹*
+      Real.exp (-τ*p)) ν := by
+    have he : (fun p : ℝ => (Real.log (2:ℝ))⁻¹*Real.exp (-τ*p)) =
+        fun p => ((Real.log (2:ℝ))⁻¹/τ)*(τ*Real.exp (-τ*p)) := by
+      funext p
+      field_simp
+    rw [he]
+    exact (exponential_tail_integral 2 τ hτ).1.const_mul _
+  have hmainMeas : Measurable (fun p : ℝ => (Real.log p)⁻¹*Real.exp (-τ*p)) := by
+    fun_prop
+  have hmain : MeasureTheory.Integrable (fun p => (Real.log p)⁻¹*
+      Real.exp (-τ*p)) ν := by
+    refine hM.mono' hmainMeas.aestronglyMeasurable ?_
+    apply (MeasureTheory.ae_restrict_iff' measurableSet_Ioi).2
+    filter_upwards [] with p hp
+    have hp' : 2 < p := hp
+    have hlogp : 0 < Real.log p := Real.log_pos (by linarith)
+    have hlog2 : 0 < Real.log (2:ℝ) := Real.log_pos (by norm_num)
+    have hinv : (Real.log p)⁻¹ ≤ (Real.log (2:ℝ))⁻¹ :=
+      (inv_le_inv₀ hlogp hlog2).2 (Real.log_le_log (by norm_num) hp'.le)
+    rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg
+      (inv_nonneg.mpr hlogp.le) (Real.exp_pos _).le)]
+    exact mul_le_mul_of_nonneg_right hinv (Real.exp_pos _).le
+  have hnorm : MeasureTheory.Integrable (fun p => ∫ x, ‖F p x‖) ν := by
+    apply hmain.congr
+    apply (MeasureTheory.ae_restrict_iff' measurableSet_Ioi).2
+    exact Filter.Eventually.of_forall (fun p hp => (hFn p hp).symm)
+  have hprod : MeasureTheory.Integrable (Function.uncurry F)
+      (ν.prod MeasureTheory.volume) :=
+    (MeasureTheory.integrable_prod_iff hm.aestronglyMeasurable).2
+      ⟨Filter.Eventually.of_forall hFi, hnorm⟩
+  have hright (x : ℝ) : (∫ p, F p x ∂ν) = K x*logCount x := by
+    have he : (fun p => F p x) = (Set.Iio x).indicator
+        (fun p => (Real.log p)⁻¹*K x) := by
+      funext p
+      by_cases hx : p < x <;> simp [F, Set.indicator, hx]
+    rw [he, MeasureTheory.integral_indicator measurableSet_Iio]
+    have hsets : ν.restrict (Set.Iio x) =
+        MeasureTheory.volume.restrict (Set.Ioo (2:ℝ) x) := by
+      dsimp [ν]
+      rw [MeasureTheory.Measure.restrict_restrict measurableSet_Iio]
+      congr 1
+      ext p
+      simp [and_comm]
+    rw [show (∫ p in Set.Iio x, (Real.log p)⁻¹*K x ∂ν) =
+        ∫ p in Set.Ioo (2:ℝ) x, (Real.log p)⁻¹*K x by
+          change (∫ p, (Real.log p)⁻¹*K x ∂(ν.restrict (Set.Iio x))) = _
+          rw [hsets]]
+    rw [MeasureTheory.integral_mul_const]
+    simp [logCount, mul_comm]
+  have hrightInt : MeasureTheory.Integrable (fun x => ∫ p, F p x ∂ν) :=
+    hprod.swap.integral_prod_left
+  have hKint : MeasureTheory.Integrable (fun x => K x*logCount x) :=
+    hrightInt.congr (Filter.Eventually.of_forall hright)
+  refine ⟨hKint.integrableOn, ?_⟩
+  calc
+    _ = ∫ p, (∫ x, F p x) ∂ν := by
+      apply MeasureTheory.integral_congr_ae
+      filter_upwards [] with p
+      rw [hFe]
+      ring
+    _ = ∫ x, (∫ p, F p x ∂ν) := MeasureTheory.integral_integral_swap hprod
+    _ = ∫ x, K x*logCount x := MeasureTheory.integral_congr_ae
+      (Filter.Eventually.of_forall hright)
+    _ = _ := by
+      rw [← MeasureTheory.integral_indicator measurableSet_Ioi]
+      apply MeasureTheory.integral_congr_ae
+      filter_upwards [] with x
+      by_cases hx : 0 < x
+      · simp [Set.indicator, hx, K]
+      · have hz : logCount x = 0 := by
+          unfold logCount
+          have hxe : x ≤ (2:ℝ) := by linarith
+          simp [Set.Ioo_eq_empty_of_le hxe]
+        simp [Set.indicator, hx, hz, K]
+
+/-- The complete prime heat-trace remainder estimate conditional on
+the explicit RH-type pointwise counting bound. RH itself and the
+derivation of that classical counting bound from RH are not proved here.
+This theorem connects the actual infinite prime sum, actual continuous
+logarithmic-density integral, and the explicit rate. -/
+theorem prime_heat_trace_conditional_rh (C τ : ℝ)
+    (hC : 0 ≤ C) (hτ : 0 < τ) (hsmall : -Real.log τ ≥ 1)
+    (hRH : ∀ x : ℝ, 0 < x → |strictPrimeCount x-logCount x| ≤
+      C*x^(1/2:ℝ)*max 0 (Real.log x)) :
+    |(∑' n : ℕ, Real.exp (-τ*(Nat.nth Nat.Prime n : ℝ))) -
+      (∫ p in Set.Ioi (2:ℝ), Real.exp (-τ*p)/Real.log p)| ≤
+      C*τ^(-1/2:ℝ)*(Real.Gamma (3/2)+Real.Gamma (5/2))*(-Real.log τ) := by
+  have hp := prime_heat_trace_counting τ hτ
+  have hs := smooth_heat_trace_counting τ hτ
+  rw [hp.2, hs.2, ← MeasureTheory.integral_sub hp.1 hs.1]
+  have he : (fun x : ℝ => τ*Real.exp (-τ*x)*strictPrimeCount x -
+      τ*Real.exp (-τ*x)*logCount x) =
+      fun x => τ*Real.exp (-τ*x)*(strictPrimeCount x-logCount x) := by
+    funext x
+    ring
+  rw [he]
+  exact infinite_laplace_rh_rate (fun x => strictPrimeCount x-logCount x)
+    C τ hC hτ hsmall hRH
+
 end MicroMacro
 
 #print axioms MicroMacro.centered_shift
@@ -980,3 +1193,7 @@ end MicroMacro
 #print axioms MicroMacro.horizontal_projection_orthogonal
 #print axioms MicroMacro.horizontal_projection_vertical_invariance
 #print axioms MicroMacro.conservation_exchange_linear
+#print axioms MicroMacro.prime_staircase_count
+#print axioms MicroMacro.prime_heat_trace_counting
+#print axioms MicroMacro.smooth_heat_trace_counting
+#print axioms MicroMacro.prime_heat_trace_conditional_rh
