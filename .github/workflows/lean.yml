@@ -1,0 +1,66 @@
+name: Lean proof check
+on:
+  push:
+    branches: [paper-i-lean-verification, main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Lean using Elan
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Resolve pinned dependencies and generate manifest
+        run: |
+          lean --version
+          lake update
+      - name: Fetch Mathlib compiled dependencies
+        run: lake exe cache get
+      - name: Build library explicitly
+        run: lake build
+      - name: Verify and audit theorem dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          lake env lean Covariance.lean | tee axiom-audit.log
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          source = Path("Covariance.lean").read_text()
+          out = Path("axiom-audit.log").read_text()
+          names = re.findall(r"^#print axioms (MicroMacro\.\w+)$", source, re.M)
+          declarations = re.findall(r"^theorem (\w+)", source, re.M)
+          assert len(names) == len(declarations) == 23
+          assert {x.split(".")[-1] for x in names} == set(declarations)
+          allowed = {"propext", "Classical.choice", "Quot.sound"}
+          for name in names:
+              match = re.search(r"'" + re.escape(name) + r"' depends on axioms: \[([^\]]*)\]", out)
+              if match:
+                  deps = {x.strip() for x in match.group(1).split(",") if x.strip()}
+                  assert deps <= allowed, (name, deps - allowed)
+              else:
+                  assert "'" + name + "' does not depend on any axioms" in out, name
+          assert "sorryAx" not in out
+          print("Axiom audit passed for all", len(names), "theorems")
+          PY
+      - name: Record toolchain
+        run: |
+          lean --version | tee lean-version.log
+          lake --version | tee lake-version.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proof-verification
+          path: |
+            axiom-audit.log
+            lean-version.log
+            lake-version.log
+            lake-manifest.json
