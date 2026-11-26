@@ -1389,7 +1389,7 @@ theorem log_count_monotone (x B : ℝ) (hx : x ≤ B) :
 /-- An eventual RH-type estimate implies the global zero-extended
 estimate used by the verified heat-trace theorem. The finite interval
 is handled explicitly, rather than assuming the stronger hypothesis. -/
-theorem eventual_prime_bound_global (C B : ℝ) (hC : 0 ≤ C) (hB : 2 ≤ B)
+theorem eventual_prime_bound_global (C B : ℝ) (hC : 0 ≤ C) (_hB : 2 ≤ B)
     (h : ∀ x : ℝ, B ≤ x → |strictPrimeCount x-logCount x| ≤
       C*x^(1/2:ℝ)*Real.log x) :
     ∃ D : ℝ, 0 ≤ D ∧ ∀ x : ℝ, 0 < x →
@@ -1576,7 +1576,10 @@ theorem covariant_trace_actual_derivative {d : Type*} (s : Finset d)
     intro i hi
     apply HasDerivAt.fun_sum
     intro j hj
-    convert (ha i j).mul ((hp i).mul (hp j)) using 1 <;> ring
+    have hd := (ha i j).mul ((hp i).mul (hp j))
+    simp only [Pi.mul_apply] at hd
+    convert hd using 1
+    ring
   have hmass : HasDerivAt (fun x => m2*(u x*u x)) (2*m2*u t*du) t := by
     convert (hu.mul hu).const_mul m2 using 1 <;> ring
   have h := hsum.add hmass
@@ -1668,7 +1671,7 @@ theorem local_metric_stress_divergence {d : Type*} [DecidableEq d]
         (2*(H i j*p ν+p j*H i ν)-2*p j*H ν i))-2*m2*u*p ν := by
       rw [hz]
       simp only [mul_sub, Finset.sum_sub_distrib]
-      ring_nf
+      abel
     _ = _ := covariant_scalar_divergence_jet s A p H m2 u ν hH
 
 /-- On-shell local conservation for a general inverse metric. This is
