@@ -432,6 +432,110 @@ theorem phase_curvature_jet {ι : Type*} (s : Finset ι)
       intro i hi
       ring
 
+
+/-- Real Cauchy–Schwarz, derived from the finite complex Gram theorem. -/
+theorem finite_real_gram_bound {ι : Type*} (s : Finset ι)
+    (a b : ι → ℝ) :
+    (s.sum fun i => a i*b i)^2 ≤
+      (s.sum fun i => a i^2)*(s.sum fun i => b i^2) := by
+  simpa using finite_complex_gram_bound s a (fun _ => 0) b (fun _ => 0)
+
+/-- The energy and flux of an arbitrary finite collection of covectors
+obey the causal inequality in an orthonormal Lorentz frame.
+Nonnegative weights can be absorbed by scaling each covector by
+the square root of its weight. -/
+theorem ensemble_energy_flux_causal {ι : Type*} (s : Finset ι)
+    (t x y z : ι → ℝ) :
+    0 ≤ (s.sum fun i => t i^2)+(s.sum fun i => x i^2)+
+      (s.sum fun i => y i^2)+(s.sum fun i => z i^2) ∧
+    4*((s.sum fun i => t i*x i)^2+(s.sum fun i => t i*y i)^2+
+      (s.sum fun i => t i*z i)^2) ≤
+      ((s.sum fun i => t i^2)+(s.sum fun i => x i^2)+
+       (s.sum fun i => y i^2)+(s.sum fun i => z i^2))^2 := by
+  have ht : 0 ≤ (s.sum fun i => t i^2) :=
+    Finset.sum_nonneg (fun i _ => sq_nonneg _)
+  have hx : 0 ≤ (s.sum fun i => x i^2) :=
+    Finset.sum_nonneg (fun i _ => sq_nonneg _)
+  have hy : 0 ≤ (s.sum fun i => y i^2) :=
+    Finset.sum_nonneg (fun i _ => sq_nonneg _)
+  have hz : 0 ≤ (s.sum fun i => z i^2) :=
+    Finset.sum_nonneg (fun i _ => sq_nonneg _)
+  constructor
+  · linarith
+  · have h1 := finite_real_gram_bound s t x
+    have h2 := finite_real_gram_bound s t y
+    have h3 := finite_real_gram_bound s t z
+    have h4 := sq_nonneg ((s.sum fun i => t i^2) -
+      (s.sum fun i => x i^2) - (s.sum fun i => y i^2) -
+      (s.sum fun i => z i^2))
+    nlinarith only [h1, h2, h3, h4]
+
+/-- Derivative of a normalized weight using a total defined by the
+sum of the microscopic weights, not an independently assumed derivative. -/
+theorem ensemble_normalized_weight_derivative {ι : Type*} (s : Finset ι)
+    (q : ι → ℝ → ℝ) (a : ι → ℝ) (t : ℝ) (i : ι)
+    (hi : i ∈ s)
+    (hq : ∀ j ∈ s, HasDerivAt (q j) (2*q j t*a j) t)
+    (hne : (s.sum fun j => q j t) ≠ 0) :
+    HasDerivAt (fun u => q i u / (s.sum fun j => q j u))
+      (2*(q i t/(s.sum fun j => q j t))*
+        (a i-(s.sum fun j => q j t*a j)/(s.sum fun j => q j t))) t := by
+  let Q : ℝ → ℝ := fun u => s.sum fun j => q j u
+  let A : ℝ := (s.sum fun j => q j t*a j)/Q t
+  change HasDerivAt (fun u => q i u/Q u) (2*(q i t/Q t)*(a i-A)) t
+  have hQne : Q t ≠ 0 := hne
+  have he : (s.sum fun j => 2*q j t*a j) = 2*Q t*A := by
+    calc
+      _ = (s.sum fun j => 2*(q j t*a j)) := by
+        apply Finset.sum_congr rfl
+        intro j hj
+        ring
+      _ = 2*(s.sum fun j => q j t*a j) := by rw [Finset.mul_sum]
+      _ = _ := by
+        dsimp [A]
+        field_simp
+  have hQ : HasDerivAt Q (2*Q t*A) t := by
+    rw [← he]
+    exact HasDerivAt.fun_sum hq
+  exact normalized_weight_derivative (q i) Q t (a i) A (hq i hi) hQ hQne
+
+/-- An actual directional derivative version of phase_curvature_jet.
+The four families are restrictions of weights and phase gradients
+to two coordinate lines through the evaluation point. Equality
+of their common values and of the mixed phase partials is explicit.
+This is not yet a full differential-forms/manifold statement. -/
+theorem phase_curvature_line_derivative {ι : Type*} (s : Finset ι)
+    (rX rY bY bX : ι → ℝ → ℝ)
+    (r x y bx byy Hxy Hyx : ι → ℝ) (Bx By t : ℝ)
+    (hrXv : ∀ i ∈ s, rX i t = r i)
+    (hrYv : ∀ i ∈ s, rY i t = r i)
+    (hbXv : ∀ i ∈ s, bX i t = bx i)
+    (hbYv : ∀ i ∈ s, bY i t = byy i)
+    (hrX : ∀ i ∈ s, HasDerivAt (rX i) (2*r i*x i) t)
+    (hrY : ∀ i ∈ s, HasDerivAt (rY i) (2*r i*y i) t)
+    (hbX : ∀ i ∈ s, HasDerivAt (bX i) (Hyx i) t)
+    (hbY : ∀ i ∈ s, HasDerivAt (bY i) (Hxy i) t)
+    (hx : (s.sum fun i => r i*x i) = 0)
+    (hy : (s.sum fun i => r i*y i) = 0)
+    (hmix : ∀ i ∈ s, Hxy i = Hyx i) :
+    HasDerivAt (fun u => (s.sum fun i => rX i u*bY i u) -
+      (s.sum fun i => rY i u*bX i u))
+      (2*(s.sum fun i => r i*(x i*(byy i-By)-y i*(bx i-Bx)))) t := by
+  have h1 : HasDerivAt (fun u => s.sum fun i => rX i u*bY i u)
+      (s.sum fun i => 2*r i*x i*byy i+r i*Hxy i) t := by
+    apply HasDerivAt.fun_sum
+    intro i hi
+    simpa only [hrXv i hi, hbYv i hi] using (hrX i hi).mul (hbY i hi)
+  have h2 : HasDerivAt (fun u => s.sum fun i => rY i u*bX i u)
+      (s.sum fun i => 2*r i*y i*bx i+r i*Hyx i) t := by
+    apply HasDerivAt.fun_sum
+    intro i hi
+    simpa only [hrYv i hi, hbXv i hi] using (hrY i hi).mul (hbX i hi)
+  have he := phase_curvature_jet s r x y bx byy Hxy Hyx Bx By hx hy hmix
+  rw [Finset.sum_sub_distrib] at he
+  rw [← he]
+  exact h1.sub h2
+
 end MicroMacro
 
 #print axioms MicroMacro.centered_shift
@@ -464,3 +568,7 @@ end MicroMacro
 #print axioms MicroMacro.flat_scalar_on_shell_jet
 #print axioms MicroMacro.centered_cross_shift
 #print axioms MicroMacro.phase_curvature_jet
+#print axioms MicroMacro.finite_real_gram_bound
+#print axioms MicroMacro.ensemble_energy_flux_causal
+#print axioms MicroMacro.ensemble_normalized_weight_derivative
+#print axioms MicroMacro.phase_curvature_line_derivative
