@@ -2127,7 +2127,7 @@ noncomputable def projectiveAffineEquiv {E : Type*}
       _ = Projectivization.mk ℂ (affineRayRep ell p.val.rep)
           (affine_rep_nonzero ell p.val.rep p.property) := by
         apply (Projectivization.mk_eq_mk_iff' ℂ _ _ _ _).2
-        exact ⟨1, by simp [he]⟩
+        exact ⟨1, by rw [one_smul]; exact he⟩
       _ = Projectivization.mk ℂ p.val.rep p.val.rep_nonzero :=
         affine_rep_same_projective_point ell p.val.rep p.val.rep_nonzero p.property
       _ = p.val := p.val.mk_rep
