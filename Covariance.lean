@@ -678,7 +678,8 @@ theorem finite_heat_trace_tail {ι : Type*} (s : Finset ι)
       (τ*Real.exp (-τ*x)) x := by
     have h : HasDerivAt (fun u : ℝ => -τ*u) (-τ) x := by
       simpa using (hasDerivAt_id x).const_mul (-τ)
-    convert h.exp.neg using 1 <;> ring
+    convert h.exp.neg using 1
+    ring
   have hcont : Continuous (fun x => τ*Real.exp (-τ*x)) := by fun_prop
   have hi (i : ι) : (∫ x in eigenvalue i..B, τ*Real.exp (-τ*x)) =
       -Real.exp (-τ*B) - (-Real.exp (-τ*eigenvalue i)) :=
@@ -711,6 +712,218 @@ theorem laplace_remainder_interval (τ a b : ℝ) (R M : ℝ → ℝ)
     rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg hn]
     exact mul_le_mul_of_nonneg_left (hbound x ⟨hx.1.le, hx.2⟩) hn
   · exact hint
+
+
+/-- Logarithmic majorant used after the Laplace rescaling y = τ x. -/
+theorem spectral_log_majorant (τ y : ℝ) (hτ : 0 < τ) (hy : 0 < y) :
+    Real.log (y/τ) ≤ -Real.log τ+y := by
+  rw [Real.log_div hy.ne' hτ.ne']
+  linarith [Real.log_le_self hy.le]
+
+/-- Infinite Laplace remainder estimate at the RH exponent. R is an
+extended counting remainder (zero below the counting threshold).
+The only analytic input on R is the explicit pointwise bound on its
+positive half-line, with log x replaced by max 0 (log x) to allow
+zero extension. Gamma integrability is proved, not assumed. -/
+theorem infinite_scaled_remainder_bound (R : ℝ → ℝ) (C τ : ℝ)
+    (hC : 0 ≤ C) (hτ : 0 < τ) (hsmall : -Real.log τ ≥ 1)
+    (hR : ∀ x : ℝ, 0 < x → |R x| ≤
+      C*x^(1/2:ℝ)*max 0 (Real.log x)) :
+    |∫ y in Set.Ioi (0:ℝ), Real.exp (-y)*R (y/τ)| ≤
+      C*τ^(-1/2:ℝ)*(Real.Gamma (3/2)+Real.Gamma (5/2))*(-Real.log τ) := by
+  let L := -Real.log τ
+  let D := C*τ^(-1/2:ℝ)
+  let f : ℝ → ℝ := fun y => Real.exp (-y)*y^(1/2:ℝ)
+  let g : ℝ → ℝ := fun y => Real.exp (-y)*y^(3/2:ℝ)
+  have hL : 1 ≤ L := hsmall
+  have hD : 0 ≤ D := mul_nonneg hC (Real.rpow_nonneg hτ.le _)
+  have hf : MeasureTheory.IntegrableOn f (Set.Ioi (0:ℝ)) := by
+    simpa [f, show (3/2:ℝ)-1 = 1/2 by norm_num] using
+      (Real.GammaIntegral_convergent (s := (3/2:ℝ)) (by norm_num))
+  have hg : MeasureTheory.IntegrableOn g (Set.Ioi (0:ℝ)) := by
+    simpa [g, show (5/2:ℝ)-1 = 3/2 by norm_num] using
+      (Real.GammaIntegral_convergent (s := (5/2:ℝ)) (by norm_num))
+  have hfi : (∫ y in Set.Ioi (0:ℝ), f y) = Real.Gamma (3/2) := by
+    simpa [f, show (3/2:ℝ)-1 = 1/2 by norm_num] using
+      (Real.Gamma_eq_integral (s := (3/2:ℝ)) (by norm_num)).symm
+  have hgi : (∫ y in Set.Ioi (0:ℝ), g y) = Real.Gamma (5/2) := by
+    simpa [g, show (5/2:ℝ)-1 = 3/2 by norm_num] using
+      (Real.Gamma_eq_integral (s := (5/2:ℝ)) (by norm_num)).symm
+  have hM : MeasureTheory.IntegrableOn (fun y => (D*L)*f y+D*g y)
+      (Set.Ioi (0:ℝ)) := (hf.const_mul _).add (hg.const_mul _)
+  have hb : ∀ y ∈ Set.Ioi (0:ℝ),
+      ‖Real.exp (-y)*R (y/τ)‖ ≤ (D*L)*f y+D*g y := by
+    intro y hy
+    have hy' : 0 < y := hy
+    have hlog : max 0 (Real.log (y/τ)) ≤ L+y :=
+      max_le (by linarith) (spectral_log_majorant τ y hτ hy')
+    have hpow : (y/τ)^(1/2:ℝ) = y^(1/2:ℝ)*τ^(-1/2:ℝ) := by
+      rw [div_eq_mul_inv, Real.mul_rpow hy'.le (inv_nonneg.mpr hτ.le),
+        ← Real.rpow_neg_eq_inv_rpow]
+      norm_num
+    have hstep : y^(1/2:ℝ)*y = y^(3/2:ℝ) := by
+      calc
+        _ = y^(1/2:ℝ)*y^(1:ℝ) := by rw [Real.rpow_one]
+        _ = _ := by rw [← Real.rpow_add hy']; norm_num
+    rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (Real.exp_pos _).le]
+    calc
+      _ ≤ Real.exp (-y)*(C*(y/τ)^(1/2:ℝ)*max 0 (Real.log (y/τ))) :=
+        mul_le_mul_of_nonneg_left (hR (y/τ) (div_pos hy' hτ)) (Real.exp_pos _).le
+      _ ≤ Real.exp (-y)*(C*(y/τ)^(1/2:ℝ)*(L+y)) :=
+        mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left hlog
+          (mul_nonneg hC (Real.rpow_nonneg (div_pos hy' hτ).le _))) (Real.exp_pos _).le
+      _ = (D*L)*f y+D*g y := by
+        rw [hpow]
+        dsimp [D, f, g]
+        rw [← hstep]
+        ring
+  have hae : ∀ᵐ y ∂(MeasureTheory.volume.restrict (Set.Ioi (0:ℝ))),
+      ‖Real.exp (-y)*R (y/τ)‖ ≤ (D*L)*f y+D*g y :=
+    (MeasureTheory.ae_restrict_iff' measurableSet_Ioi).2
+      (Filter.Eventually.of_forall hb)
+  have hbound := MeasureTheory.norm_integral_le_of_norm_le hM hae
+  rw [Real.norm_eq_abs, MeasureTheory.integral_add (hf.const_mul (D*L))
+    (hg.const_mul D), MeasureTheory.integral_const_mul,
+    MeasureTheory.integral_const_mul, hfi, hgi] at hbound
+  change _ ≤ D*(Real.Gamma (3/2)+Real.Gamma (5/2))*L
+  have hG : 0 ≤ Real.Gamma (5/2) := Real.Gamma_nonneg_of_nonneg (by norm_num)
+  have hex : 0 ≤ D*Real.Gamma (5/2)*(L-1) :=
+    mul_nonneg (mul_nonneg hD hG) (sub_nonneg.mpr hL)
+  nlinarith only [hbound, hex]
+
+/-- Exact rescaling of the infinite Laplace integral. No integrability
+hypothesis is necessary for this equality of totalized Bochner integrals;
+the subsequent application supplies an integrable majorant. -/
+theorem infinite_laplace_rescale (R : ℝ → ℝ) (τ : ℝ) (hτ : 0 < τ) :
+    (∫ x in Set.Ioi (0:ℝ), τ*Real.exp (-τ*x)*R x) =
+      ∫ y in Set.Ioi (0:ℝ), Real.exp (-y)*R (y/τ) := by
+  let g : ℝ → ℝ := fun y => Real.exp (-y)*R (y/τ)
+  have he : (fun x : ℝ => τ*Real.exp (-τ*x)*R x) =
+      fun x => τ*g (τ*x) := by
+    funext x
+    dsimp [g]
+    rw [show τ*x/τ = x by field_simp, neg_mul]
+    ring
+  rw [he, MeasureTheory.integral_const_mul,
+    MeasureTheory.integral_comp_mul_left_Ioi g 0 hτ]
+  simp [g, smul_eq_mul, hτ.ne']
+
+/-- Explicit infinite-domain RH-rate transfer. Unlike the finite
+interval lemma, the error estimate has the target τ^{-1/2} log(1/τ)
+rate and a concrete constant. The counting estimate is a hypothesis. -/
+theorem infinite_laplace_rh_rate (R : ℝ → ℝ) (C τ : ℝ)
+    (hC : 0 ≤ C) (hτ : 0 < τ) (hsmall : -Real.log τ ≥ 1)
+    (hR : ∀ x : ℝ, 0 < x → |R x| ≤
+      C*x^(1/2:ℝ)*max 0 (Real.log x)) :
+    |∫ x in Set.Ioi (0:ℝ), τ*Real.exp (-τ*x)*R x| ≤
+      C*τ^(-1/2:ℝ)*(Real.Gamma (3/2)+Real.Gamma (5/2))*(-Real.log τ) := by
+  rw [infinite_laplace_rescale R τ hτ]
+  exact infinite_scaled_remainder_bound R C τ hC hτ hsmall hR
+
+/-- A single eigenvalue contributes its exponential weight as an
+integral over the infinite tail. Both convergence and equality follow
+from the improper fundamental theorem of calculus. -/
+theorem exponential_tail_integral (a τ : ℝ) (hτ : 0 < τ) :
+    MeasureTheory.IntegrableOn (fun x => τ*Real.exp (-τ*x)) (Set.Ioi a) ∧
+    (∫ x in Set.Ioi a, τ*Real.exp (-τ*x)) = Real.exp (-τ*a) := by
+  have hd (x : ℝ) : HasDerivAt (fun u => -Real.exp (-τ*u))
+      (τ*Real.exp (-τ*x)) x := by
+    have h : HasDerivAt (fun u : ℝ => -τ*u) (-τ) x := by
+      simpa using (hasDerivAt_id x).const_mul (-τ)
+    convert h.exp.neg using 1
+    ring
+  have hl : Filter.Tendsto (fun x : ℝ => -Real.exp (-τ*x)) Filter.atTop (nhds 0) := by
+    have hlin : Filter.Tendsto (fun x : ℝ => τ*x) Filter.atTop Filter.atTop := by
+      apply Filter.tendsto_atTop_atTop.2
+      intro b
+      refine ⟨b/τ, ?_⟩
+      intro x hx
+      simpa [mul_comm] using (div_le_iff₀ hτ).mp hx
+    have hex := (Real.tendsto_exp_neg_atTop_nhds_zero.comp hlin).neg
+    simpa [Function.comp_def, neg_mul] using hex
+  have hpos : ∀ x ∈ Set.Ioi a, 0 ≤ τ*Real.exp (-τ*x) :=
+    fun x _ => mul_nonneg hτ.le (Real.exp_pos (-τ*x)).le
+  have hi := MeasureTheory.integrableOn_Ioi_deriv_of_nonneg'
+    (fun x _ => hd x) hpos hl
+  refine ⟨hi, ?_⟩
+  simpa using MeasureTheory.integral_Ioi_of_hasDerivAt_of_nonneg'
+    (fun x _ => hd x) hpos hl
+
+/-- Genuine countable spectral sum, with a counting staircase
+represented by its indicator sum. No prime-counting identity is
+assumed for this general spectral representation. -/
+theorem countable_heat_trace_integral (e : ℕ → ℝ) (τ : ℝ)
+    (hτ : 0 < τ) (he : ∀ n : ℕ, (n:ℝ) ≤ e n) :
+    (∑' n : ℕ, Real.exp (-τ*e n)) =
+      ∫ x : ℝ, (∑' n : ℕ, (Set.Ioi (e n)).indicator
+        (fun z => τ*Real.exp (-τ*z)) x) := by
+  let F : ℕ → ℝ → ℝ := fun n => (Set.Ioi (e n)).indicator
+    (fun x => τ*Real.exp (-τ*x))
+  have hF (n : ℕ) : MeasureTheory.Integrable (F n) := by
+    exact (MeasureTheory.integrable_indicator_iff measurableSet_Ioi).2
+      (exponential_tail_integral (e n) τ hτ).1
+  have hFi (n : ℕ) : (∫ x, F n x) = Real.exp (-τ*e n) := by
+    rw [show F n = (Set.Ioi (e n)).indicator (fun x => τ*Real.exp (-τ*x)) by rfl,
+      MeasureTheory.integral_indicator measurableSet_Ioi]
+    exact (exponential_tail_integral (e n) τ hτ).2
+  have hFn (n : ℕ) : (∫ x, ‖F n x‖) = Real.exp (-τ*e n) := by
+    rw [← hFi n]
+    apply MeasureTheory.integral_congr_ae
+    filter_upwards [] with x
+    rw [Real.norm_eq_abs, abs_of_nonneg]
+    exact Set.indicator_nonneg (fun z _ => mul_nonneg hτ.le (Real.exp_pos _).le) _
+  have hs : Summable (fun n => ∫ x, ‖F n x‖) := by
+    simp_rw [hFn]
+    exact Real.summable_exp_nat_mul_of_ge (neg_neg_of_pos hτ) he
+  rw [show (fun n => Real.exp (-τ*e n)) = (fun n => ∫ x, F n x) by
+    funext n; exact (hFi n).symm]
+  exact MeasureTheory.integral_tsum_of_summable_integral_norm hF hs
+
+/-- Define the prime heat trace using the nth prime enumeration.
+The infinite spectral sum is related to an explicit indicator staircase. -/
+theorem prime_heat_trace_staircase (τ : ℝ) (hτ : 0 < τ) :
+    (∑' n : ℕ, Real.exp (-τ*(Nat.nth Nat.Prime n : ℝ))) =
+      ∫ x : ℝ, (∑' n : ℕ, (Set.Ioi (Nat.nth Nat.Prime n : ℝ)).indicator
+        (fun z => τ*Real.exp (-τ*z)) x) := by
+  apply countable_heat_trace_integral _ τ hτ
+  intro n
+  exact_mod_cast (show n ≤ Nat.nth Nat.Prime n from
+    le_trans (Nat.le_add_right n 2) (Nat.add_two_le_nth_prime n))
+
+/-- Coordinate-free horizontal projection in a complex inner-product
+space, with actual Mathlib inner products, not a component array.
+Convention: the inner product is linear in its second argument. -/
+noncomputable def horizontalProjection {E : Type*} [NormedAddCommGroup E]
+    [InnerProductSpace ℂ E] (n v : E) : E :=
+  v - inner ℂ n v • n
+
+theorem horizontal_projection_orthogonal {E : Type*} [NormedAddCommGroup E]
+    [InnerProductSpace ℂ E] (n v : E) (hn : inner ℂ n n = 1) :
+    inner ℂ n (horizontalProjection n v) = 0 := by
+  simp [horizontalProjection, hn]
+
+/-- Horizontal projection removes any change in the vertical (phase)
+direction. This is intrinsic Hilbert-space algebra, applicable to
+actual tangent derivatives once the derivative map is constructed. -/
+theorem horizontal_projection_vertical_invariance {E : Type*} [NormedAddCommGroup E]
+    [InnerProductSpace ℂ E] (n v : E) (c : ℂ) (hn : inner ℂ n n = 1) :
+    horizontalProjection n (v+c • n) = horizontalProjection n v := by
+  simp only [horizontalProjection, inner_add_right, inner_smul_right, hn, mul_one, add_smul]
+  abel
+
+/-- A linear covariant-divergence operator applied to the exact
+stress split transfers the on-shell conservation law into an
+exchange identity. This theorem does not construct the connection. -/
+theorem conservation_exchange_linear {V W : Type*}
+    [AddCommGroup V] [Module ℝ V] [AddCommGroup W] [Module ℝ W]
+    (D : V →ₗ[ℝ] W) (T M R : V)
+    (hT : T = M+R) (hcons : D T = 0) :
+    D M = -D R := by
+  have he : D M+D R = 0 := by
+    simpa [hT] using hcons
+  calc
+    D M = D M+D R-D R := by abel
+    _ = -D R := by rw [he, zero_sub]
 
 end MicroMacro
 
@@ -757,3 +970,13 @@ end MicroMacro
 #print axioms MicroMacro.counterpropagating_stress_witness
 #print axioms MicroMacro.finite_heat_trace_tail
 #print axioms MicroMacro.laplace_remainder_interval
+#print axioms MicroMacro.spectral_log_majorant
+#print axioms MicroMacro.infinite_scaled_remainder_bound
+#print axioms MicroMacro.infinite_laplace_rescale
+#print axioms MicroMacro.infinite_laplace_rh_rate
+#print axioms MicroMacro.exponential_tail_integral
+#print axioms MicroMacro.countable_heat_trace_integral
+#print axioms MicroMacro.prime_heat_trace_staircase
+#print axioms MicroMacro.horizontal_projection_orthogonal
+#print axioms MicroMacro.horizontal_projection_vertical_invariance
+#print axioms MicroMacro.conservation_exchange_linear
