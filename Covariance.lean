@@ -152,6 +152,123 @@ theorem no_mean_only_closure {α : Type*} (f : α → ℝ) (u : α)
   intro h
   exact closure_witness r k hr hk (h.1.symm.trans h.2)
 
+
+/-- Finite amplitude/phase kinetic tensor, evaluated on two covectors. -/
+theorem amplitude_phase_tensor {ι : Type*} (s : Finset ι)
+    (q ax ay bx byy : ι → ℝ) (A₁ A₂ B₁ B₂ : ℝ)
+    (ha₁ : (s.sum fun i => q i*ax i) = (s.sum q)*A₁)
+    (ha₂ : (s.sum fun i => q i*ay i) = (s.sum q)*A₂)
+    (hb₁ : (s.sum fun i => q i*bx i) = (s.sum q)*B₁)
+    (hb₂ : (s.sum fun i => q i*byy i) = (s.sum q)*B₂) :
+    (s.sum fun i => q i*(ax i*ay i + bx i*byy i)) =
+      (s.sum q)*(A₁*A₂+B₁*B₂) +
+      (s.sum fun i => q i*((ax i-A₁)*(ay i-A₂)+(bx i-B₁)*(byy i-B₂))) := by
+  have h₁ := weighted_cross_covariance s q ax ay A₁ A₂ ha₁ ha₂
+  have h₂ := weighted_cross_covariance s q bx byy B₁ B₂ hb₁ hb₂
+  simp only [mul_add, Finset.sum_add_distrib]
+  have h₃ : (s.sum fun i => q i * (ax i * ay i)) =
+      (s.sum fun i => q i * ax i * ay i) := by
+    apply Finset.sum_congr rfl
+    intro i hi
+    ring
+  have h₄ : (s.sum fun i => q i * (bx i * byy i)) =
+      (s.sum fun i => q i * bx i * byy i) := by
+    apply Finset.sum_congr rfl
+    intro i hi
+    ring
+  rw [h₃, h₄, h₁, h₂]
+  ring
+
+/-- The residual is PSD after contraction with any direction. -/
+theorem amplitude_phase_residual_psd {ι : Type*} (s : Finset ι)
+    (q a b : ι → ℝ) (A B : ℝ) (hq : ∀ i ∈ s, 0 ≤ q i) :
+    0 ≤ (s.sum fun i => q i*((a i-A)^2+(b i-B)^2)) := by
+  apply Finset.sum_nonneg
+  intro i hi
+  exact mul_nonneg (hq i hi) (add_nonneg (sq_nonneg _) (sq_nonneg _))
+
+/-- Linear trace reversal preserves the exact split, for an arbitrary
+finite inverse-metric array. This is the pointwise tensor algebra,
+not an assertion about the Einstein tensor or derivatives. -/
+theorem stress_reconstruction {d : Type*} (s : Finset d)
+    (g gi K M C : d → d → ℝ) (massDensity : ℝ)
+    (h : ∀ i j, K i j = M i j + C i j) (μ ν : d) :
+    2*K μ ν - g μ ν*((s.sum fun i => s.sum fun j => gi i j*K i j)+massDensity) =
+      (2*M μ ν - g μ ν*((s.sum fun i => s.sum fun j => gi i j*M i j)+massDensity)) +
+      (2*C μ ν - g μ ν*(s.sum fun i => s.sum fun j => gi i j*C i j)) := by
+  simp only [h, mul_add, Finset.sum_add_distrib]
+  ring
+
+/-- Null contraction of residual stress is twice the covariance contraction. -/
+theorem residual_null_energy (c g traceC : ℝ) (hc : 0 ≤ c) (hg : g = 0) :
+    0 ≤ 2*c - g*traceC := by
+  rw [hg]
+  linarith
+
+/-- Pointwise complex horizontal derivative Gram identity, including
+the normalized amplitude factor. Real variables represent the real
+and imaginary components of a derivative after subtracting the mean. -/
+theorem projective_horizontal_gram (nr ni ax ay bx byy r : ℝ)
+    (hn : nr^2+ni^2 = r) :
+    (nr*ax-ni*bx)*(nr*ay-ni*byy) +
+      (ni*ax+nr*bx)*(ni*ay+nr*byy) =
+      r*(ax*ay+bx*byy) := by
+  linear_combination (ax*ay+bx*byy)*hn
+
+/-- Imaginary Gram component of the same horizontal derivatives. -/
+theorem projective_horizontal_imaginary (nr ni ax ay bx byy r : ℝ)
+    (hn : nr^2+ni^2 = r) :
+    (nr*ax-ni*bx)*(ni*ay+nr*byy) -
+      (ni*ax+nr*bx)*(nr*ay-ni*byy) =
+      r*(ax*byy-bx*ay) := by
+  linear_combination (ax*byy-bx*ay)*hn
+
+/-- Summed horizontal Gram real part equals the normalized
+amplitude/phase covariance, for a positive-mass block. -/
+theorem projective_block_gram {ι : Type*} (s : Finset ι)
+    (q nr ni ax ay bx byy : ι → ℝ) (Q : ℝ)
+    (hn : ∀ i ∈ s, Q*(nr i^2+ni i^2) = q i) :
+    Q*(s.sum fun i => (nr i*ax i-ni i*bx i)*(nr i*ay i-ni i*byy i) +
+        (ni i*ax i+nr i*bx i)*(ni i*ay i+nr i*byy i)) =
+      (s.sum fun i => q i*(ax i*ay i+bx i*byy i)) := by
+  rw [Finset.mul_sum]
+  apply Finset.sum_congr rfl
+  intro i hi
+  linear_combination (ax i*ay i+bx i*byy i)*hn i hi
+
+/-- Fisher splitting algebra after normalization:
+the log-amplitude score is twice the centered amplitude gradient. -/
+theorem fisher_quarter_split {ι : Type*} (s : Finset ι)
+    (r a b score : ι → ℝ) (A B : ℝ)
+    (h : ∀ i ∈ s, score i = 2*(a i-A)) :
+    (s.sum fun i => r i*((a i-A)^2+(b i-B)^2)) =
+      (s.sum fun i => r i*score i^2)/4 +
+      (s.sum fun i => r i*(b i-B)^2) := by
+  have he : (s.sum fun i => r i*(a i-A)^2) =
+      (s.sum fun i => r i*score i^2)/4 := by
+    have hh : (s.sum fun i => r i*score i^2) =
+        (s.sum fun i => (r i*(a i-A)^2)*4) := by
+      apply Finset.sum_congr rfl
+      intro i hi
+      rw [h i hi]
+      ring
+    rw [hh, Finset.sum_mul]
+    ring
+  simp only [mul_add, Finset.sum_add_distrib]
+  rw [he]
+
+/-- If the complex Gram determinant is nonnegative, curvature defined
+as twice its imaginary component satisfies the paper's weighted bound.
+The underlying Cauchy–Schwarz theorem and differential curvature
+identification remain separate obligations. -/
+theorem curvature_covariance_bound (Q R S X Y F : ℝ)
+    (hgram : X^2+Y^2 ≤ R*S) (hF : F = 2*Y) :
+    Q^2*F^2/4 ≤ (Q*R)*(Q*S)-(Q*X)^2 := by
+  rw [hF]
+  have hh : 0 ≤ Q^2*(R*S-(X^2+Y^2)) :=
+    mul_nonneg (sq_nonneg Q) (sub_nonneg.mpr hgram)
+  nlinarith only [hh]
+
 end MicroMacro
 
 #print axioms MicroMacro.centered_shift
@@ -168,3 +285,12 @@ end MicroMacro
 #print axioms MicroMacro.nested_monotonicity
 #print axioms MicroMacro.energy_flux_causal
 #print axioms MicroMacro.no_mean_only_closure
+#print axioms MicroMacro.amplitude_phase_tensor
+#print axioms MicroMacro.amplitude_phase_residual_psd
+#print axioms MicroMacro.stress_reconstruction
+#print axioms MicroMacro.residual_null_energy
+#print axioms MicroMacro.projective_horizontal_gram
+#print axioms MicroMacro.projective_horizontal_imaginary
+#print axioms MicroMacro.projective_block_gram
+#print axioms MicroMacro.fisher_quarter_split
+#print axioms MicroMacro.curvature_covariance_bound
