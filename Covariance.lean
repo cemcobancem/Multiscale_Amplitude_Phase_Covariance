@@ -2121,13 +2121,14 @@ noncomputable def projectiveAffineEquiv {E : Type*}
   left_inv p := by
     apply Subtype.ext
     change Projectivization.mk ℂ (projectiveAffineRep ell p.val) _ = p.val
-    have he : projectiveAffineRep ell p.val = affineRayRep ell p.val.rep := by
-      rw [← p.val.mk_rep, projective_affine_rep_mk]
+    have he : projectiveAffineRep ell p.val = affineRayRep ell p.val.rep :=
+      (congrArg (projectiveAffineRep ell) p.val.mk_rep.symm).trans
+        (projective_affine_rep_mk ell p.val.rep p.val.rep_nonzero)
     calc
       _ = Projectivization.mk ℂ (affineRayRep ell p.val.rep)
           (affine_rep_nonzero ell p.val.rep p.property) := by
         apply (Projectivization.mk_eq_mk_iff' ℂ _ _ _ _).2
-        exact ⟨1, by rw [one_smul]; exact he⟩
+        exact ⟨1, by rw [one_smul]; exact he.symm⟩
       _ = Projectivization.mk ℂ p.val.rep p.val.rep_nonzero :=
         affine_rep_same_projective_point ell p.val.rep p.val.rep_nonzero p.property
       _ = p.val := p.val.mk_rep
