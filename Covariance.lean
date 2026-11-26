@@ -2026,6 +2026,163 @@ theorem quotient_jet_tensor_rep {V E : Type*}
     quotientJetTensor (Quot.mk _ j) u v =
       projectivePullback j.val.1 j.val.2 u v := rfl
 
+
+/-- A linear-functional affine representative of a projective ray.
+On the nonvanishing chart it lies in the affine hyperplane ℓ(v)=1. -/
+noncomputable def affineRayRep {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℂ E] (ell : E →L[ℂ] ℂ) (v : E) : E :=
+  (ell v)⁻¹ • v
+
+theorem affine_ray_rep_scale {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℂ E] (ell : E →L[ℂ] ℂ) (v : E) (c : ℂ)
+    (hc : c ≠ 0) :
+    affineRayRep ell (c • v) = affineRayRep ell v := by
+  unfold affineRayRep
+  rw [map_smul, smul_smul]
+  change ((c*ell v)⁻¹*c) • v = (ell v)⁻¹ • v
+  have he : (c*ell v)⁻¹*c = (ell v)⁻¹ := by
+    by_cases hz : ell v = 0
+    · simp [hz]
+    · field_simp
+  rw [he]
+
+/-- Affine representatives descend to Mathlib's actual projective
+space, the quotient of nonzero vectors by nonzero complex scalars. -/
+noncomputable def projectiveAffineRep {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℂ E] (ell : E →L[ℂ] ℂ) (p : Projectivization ℂ E) : E :=
+  Projectivization.lift (fun v => affineRayRep ell v.val) (by
+    intro a b c h
+    change a.val = c • b.val at h
+    have hc : c ≠ 0 := by
+      intro hz
+      apply a.property
+      simpa [hz] using h
+    rw [h]
+    exact affine_ray_rep_scale ell b.val c hc) p
+
+theorem projective_affine_rep_mk {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℂ E] (ell : E →L[ℂ] ℂ) (v : E) (hv : v ≠ 0) :
+    projectiveAffineRep ell (Projectivization.mk ℂ v hv) = affineRayRep ell v := rfl
+
+theorem affine_rep_hyperplane {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℂ E] (ell : E →L[ℂ] ℂ) (v : E) (hv : ell v ≠ 0) :
+    ell (affineRayRep ell v) = 1 := by
+  simp [affineRayRep, map_smul, smul_eq_mul, hv]
+
+theorem affine_rep_nonzero {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℂ E] (ell : E →L[ℂ] ℂ) (v : E) (hv : ell v ≠ 0) :
+    affineRayRep ell v ≠ 0 := by
+  intro h
+  have he := affine_rep_hyperplane ell v hv
+  simp [h] at he
+
+theorem affine_rep_same_projective_point {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℂ E] (ell : E →L[ℂ] ℂ) (v : E)
+    (hv : v ≠ 0) (h : ell v ≠ 0) :
+    Projectivization.mk ℂ (affineRayRep ell v) (affine_rep_nonzero ell v h) =
+      Projectivization.mk ℂ v hv := by
+  apply (Projectivization.mk_eq_mk_iff' ℂ _ _ _ _).2
+  exact ⟨(ell v)⁻¹,rfl⟩
+
+theorem affine_rep_fixed_on_hyperplane {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℂ E] (ell : E →L[ℂ] ℂ) (v : E) (hv : ell v = 1) :
+    affineRayRep ell v = v := by simp [affineRayRep,hv]
+
+/-- Algebraic chart equivalence for a nonvanishing linear-functional
+chart on the actual projectivization. The source condition is
+representative-independent by the quotient construction. -/
+noncomputable def projectiveAffineEquiv {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E] (ell : E →L[ℂ] ℂ) :
+    {p : Projectivization ℂ E // ell p.rep ≠ 0} ≃ {v : E // ell v = 1} where
+  toFun p := ⟨projectiveAffineRep ell p.val, by
+    rw [← p.val.mk_rep, projective_affine_rep_mk]
+    exact affine_rep_hyperplane ell p.val.rep p.property⟩
+  invFun v := by
+    have hv : v.val ≠ 0 := by
+      intro h
+      have he := v.property
+      simp [h] at he
+    let p := Projectivization.mk ℂ v.val hv
+    refine ⟨p, ?_⟩
+    intro h
+    obtain ⟨c,hc⟩ := Projectivization.exists_smul_eq_mk_rep ℂ v.val hv
+    have he : ell p.rep = (c:ℂ)*ell v.val := by
+      rw [← hc, map_smul]
+      rfl
+    rw [h,v.property,mul_one] at he
+    exact Units.ne_zero c he.symm
+  left_inv p := by
+    apply Subtype.ext
+    change Projectivization.mk ℂ (projectiveAffineRep ell p.val) _ = p.val
+    rw [← p.val.mk_rep, projective_affine_rep_mk]
+    exact affine_rep_same_projective_point ell p.val.rep p.val.rep_nonzero p.property
+  right_inv v := by
+    apply Subtype.ext
+    change projectiveAffineRep ell (Projectivization.mk ℂ v.val _) = v.val
+    rw [projective_affine_rep_mk]
+    exact affine_rep_fixed_on_hyperplane ell v.val v.property
+
+theorem projective_affine_transition_smooth {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E] (ell : E →L[ℂ] ℂ) :
+    ContDiffOn ℂ (⊤ : WithTop ℕ∞) (affineRayRep ell)
+      {v : E | ell v ≠ 0} := by
+  unfold affineRayRep
+  exact (ell.contDiff.contDiffOn.inv (fun _ hx => hx)).smul contDiff_id.contDiffOn
+
+/-- The transition maps compose on their common domain; this supplies
+the cocycle law in affine representatives. -/
+theorem projective_affine_transition_cocycle {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E]
+    (ell ell' : E →L[ℂ] ℂ) (v : E) (hv : ell v ≠ 0) :
+    affineRayRep ell' (affineRayRep ell v) = affineRayRep ell' v := by
+  exact affine_ray_rep_scale ell' v (ell v)⁻¹ (inv_ne_zero hv)
+
+/-- Two normalized representatives of the same actual projective
+point differ by a unit complex scalar; the scalar is their inner
+product. -/
+theorem normalized_same_projective_ray {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E]
+    (n m : E) (hn : inner ℂ n n = 1) (hm : inner ℂ m m = 1)
+    (hnz : n ≠ 0) (hmz : m ≠ 0)
+    (h : Projectivization.mk ℂ m hmz = Projectivization.mk ℂ n hnz) :
+    m = inner ℂ n m • n ∧ star (inner ℂ n m)*inner ℂ n m = 1 := by
+  obtain ⟨c,hc⟩ := (Projectivization.mk_eq_mk_iff' ℂ m n hmz hnz).1 h
+  have hinner : inner ℂ n m = c := by
+    rw [← hc, inner_smul_right, hn, mul_one]
+  rw [hinner]
+  refine ⟨hc.symm, ?_⟩
+  have hval : inner ℂ (c • n) (c • n) = star c*c := by
+    rw [inner_smul_left, inner_smul_right, hn, mul_one]
+  rw [hc,hm] at hval
+  exact hval.symm
+
+/-- The tensor of two actual normalized differentiable lifts of the
+same projective map is identical. No gauge differentiability is
+assumed: the gauge is constructed from the inner product. -/
+theorem projective_tensor_same_ray_lifts {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E]
+    (n m : V → E) (x u v : V)
+    (hn : DifferentiableAt ℝ n x) (hm : DifferentiableAt ℝ m x)
+    (hunitn : ∀ y, inner ℂ (n y) (n y) = 1)
+    (hunitm : ∀ y, inner ℂ (m y) (m y) = 1)
+    (hnz : ∀ y, n y ≠ 0) (hmz : ∀ y, m y ≠ 0)
+    (h : ∀ y, Projectivization.mk ℂ (m y) (hmz y) =
+      Projectivization.mk ℂ (n y) (hnz y)) :
+    projectiveTensor m x u v = projectiveTensor n x u v := by
+  let c : V → ℂ := fun y => inner ℂ (n y) (m y)
+  have he : m = fun y => c y • n y := by
+    funext y
+    exact (normalized_same_projective_ray (n y) (m y) (hunitn y)
+      (hunitm y) (hnz y) (hmz y) (h y)).1
+  have hc : DifferentiableAt ℝ c x := hn.inner ℂ hm
+  have hphase : star (c x)*c x = 1 :=
+    (normalized_same_projective_ray (n x) (m x) (hunitn x)
+      (hunitm x) (hnz x) (hmz x) (h x)).2
+  rw [he]
+  exact projective_tensor_gauge_fderiv n c x u v hn hc (hunitn x) hphase
+
 end MicroMacro
 
 #print axioms MicroMacro.centered_shift
@@ -2125,3 +2282,13 @@ end MicroMacro
 #print axioms MicroMacro.finite_normalized_berry_mean
 #print axioms MicroMacro.projective_tensor_normalized_covariance
 #print axioms MicroMacro.quotient_jet_tensor_rep
+#print axioms MicroMacro.affine_ray_rep_scale
+#print axioms MicroMacro.projective_affine_rep_mk
+#print axioms MicroMacro.affine_rep_hyperplane
+#print axioms MicroMacro.affine_rep_nonzero
+#print axioms MicroMacro.affine_rep_same_projective_point
+#print axioms MicroMacro.affine_rep_fixed_on_hyperplane
+#print axioms MicroMacro.projective_affine_transition_smooth
+#print axioms MicroMacro.projective_affine_transition_cocycle
+#print axioms MicroMacro.normalized_same_projective_ray
+#print axioms MicroMacro.projective_tensor_same_ray_lifts
