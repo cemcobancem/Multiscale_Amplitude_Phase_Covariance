@@ -1084,7 +1084,6 @@ theorem smooth_heat_trace_counting (τ : ℝ) (hτ : 0 < τ) :
       simp [and_comm]
     rw [show (∫ p in Set.Iio x, (Real.log p)⁻¹*K x ∂ν) =
         ∫ p in Set.Ioo (2:ℝ) x, (Real.log p)⁻¹*K x by
-          change (∫ p, (Real.log p)⁻¹*K x ∂(ν.restrict (Set.Iio x))) = _
           rw [hsets]]
     rw [MeasureTheory.integral_mul_const]
     simp [logCount, mul_comm]
@@ -1137,6 +1136,314 @@ theorem prime_heat_trace_conditional_rh (C τ : ℝ)
   rw [he]
   exact infinite_laplace_rh_rate (fun x => strictPrimeCount x-logCount x)
     C τ hC hτ hsmall hRH
+
+
+/-- Multiplication by a unit complex scalar preserves the actual
+inner product, independent of coordinates. -/
+theorem unit_phase_inner {E : Type*} [NormedAddCommGroup E]
+    [InnerProductSpace ℂ E] (c : ℂ) (u v : E)
+    (hc : star c*c = 1) :
+    inner ℂ (c • u) (c • v) = inner ℂ u v := by
+  rw [inner_smul_left, inner_smul_right]
+  change star c*(c*inner ℂ u v) = inner ℂ u v
+  rw [← mul_assoc, hc, one_mul]
+
+/-- Horizontal derivatives transform equivariantly under a unit phase
+and an arbitrary vertical term, as produced by a varying phase. -/
+theorem horizontal_projection_phase {E : Type*} [NormedAddCommGroup E]
+    [InnerProductSpace ℂ E] (n v : E) (c d : ℂ)
+    (hn : inner ℂ n n = 1) (hc : star c*c = 1) :
+    horizontalProjection (c • n) (c • v+d • n) =
+      c • horizontalProjection n v := by
+  have hn' : inner ℂ (c • n) (c • n) = 1 := by
+    rw [unit_phase_inner c n n hc, hn]
+  have hne : c ≠ 0 := by
+    intro h
+    simp [h] at hc
+  have hd : d • n = (d/c) • (c • n) := by
+    rw [smul_smul, div_mul_cancel₀ _ hne]
+  rw [hd, horizontal_projection_vertical_invariance _ _ _ hn']
+  unfold horizontalProjection
+  rw [unit_phase_inner c n v hc, smul_sub, smul_smul, smul_smul, mul_comm c]
+
+/-- Intrinsic pullback of the Hermitian projective tensor by a real
+linear tangent derivative. The actual derivative is supplied by the
+smooth state map in the next theorem. -/
+noncomputable def projectivePullback {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : E) (D : V →L[ℝ] E) (u v : V) : ℂ :=
+  inner ℂ (horizontalProjection n (D u)) (horizontalProjection n (D v))
+
+theorem projective_pullback_gauge {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : E) (D D' : V →L[ℝ] E) (c : ℂ) (d : V → ℂ)
+    (u v : V) (hn : inner ℂ n n = 1) (hc : star c*c = 1)
+    (hD : ∀ w, D' w = c • D w+d w • n) :
+    projectivePullback (c • n) D' u v = projectivePullback n D u v := by
+  unfold projectivePullback
+  rw [hD u, hD v, horizontal_projection_phase n (D u) c (d u) hn hc,
+    horizontal_projection_phase n (D v) c (d v) hn hc]
+  exact unit_phase_inner c _ _ hc
+
+/-- Normalization differentiates to the tangent condition for a genuine
+differentiable state curve in a complex Hilbert space. -/
+theorem normalized_curve_tangent {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : ℝ → E) (v : E) (t : ℝ)
+    (h : HasDerivAt n v t) (hn : ∀ x, inner ℂ (n x) (n x) = 1) :
+    inner ℂ (n t) v+inner ℂ v (n t) = 0 := by
+  have hd := h.inner ℂ h
+  have he : (fun x => inner ℂ (n x) (n x)) = fun _ : ℝ => (1:ℂ) := by
+    funext x
+    exact hn x
+  rw [he] at hd
+  exact hd.deriv.symm.trans (hasDerivAt_const t (1:ℂ)).deriv
+
+/-- The real-parameter chain/product rule for a varying complex gauge,
+followed by the intrinsic projection identity. -/
+theorem projective_curve_gauge {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E]
+    (n : ℝ → E) (c : ℝ → ℂ) (v : E) (d : ℂ) (t : ℝ)
+    (hn : HasDerivAt n v t) (hd : HasDerivAt c d t)
+    (hunit : inner ℂ (n t) (n t) = 1) (hc : star (c t)*c t = 1) :
+    horizontalProjection (c t • n t)
+      (deriv (fun x => c x • n x) t) =
+      c t • horizontalProjection (n t) v := by
+  rw [(hd.fun_smul hn).deriv]
+  exact horizontal_projection_phase _ _ _ _ hunit hc
+
+/-- In a chart, a connection acting on a covector. Γ i l is Γ^l_{ki}
+for the fixed differentiation direction k. -/
+noncomputable def covectorConnection {d : Type*} (s : Finset d)
+    (Γ : d → d → ℝ) (p dp : d → ℝ) (i : d) : ℝ :=
+  dp i-s.sum (fun l => Γ i l*p l)
+
+/-- Connection acting on a covariant rank-two tensor in one chart direction. -/
+noncomputable def tensorConnection {d : Type*} (s : Finset d)
+    (Γ T dT : d → d → ℝ) (i j : d) : ℝ :=
+  dT i j-s.sum (fun l => Γ i l*T l j)-s.sum (fun l => Γ j l*T i l)
+
+/-- The connection product rule follows from the explicit connection
+formulas and is not an assumed property. -/
+theorem covector_outer_connection_rule {d : Type*} (s : Finset d)
+    (Γ : d → d → ℝ) (p q dp dq : d → ℝ) (i j : d) :
+    tensorConnection s Γ (fun a b => p a*q b)
+      (fun a b => dp a*q b+p a*dq b) i j =
+    covectorConnection s Γ p dp i*q j+p i*covectorConnection s Γ q dq j := by
+  have h1 : (s.sum fun l => Γ i l*(p l*q j)) =
+      (s.sum fun l => Γ i l*p l)*q j := by
+    rw [Finset.sum_mul]
+    apply Finset.sum_congr rfl
+    intro l hl
+    ring
+  have h2 : (s.sum fun l => Γ j l*(p i*q l)) =
+      p i*(s.sum fun l => Γ j l*q l) := by
+    rw [Finset.mul_sum]
+    apply Finset.sum_congr rfl
+    intro l hl
+    ring
+  simp only [tensorConnection, covectorConnection, h1, h2]
+  ring
+
+/-- Actual chart-line derivative of a covector outer product, followed
+by the connection correction. -/
+theorem covector_outer_actual_derivative {d : Type*} (s : Finset d)
+    (Γ : d → d → ℝ) (p q : d → ℝ → ℝ) (dp dq : d → ℝ)
+    (t : ℝ) (i j : d)
+    (hp : ∀ a, HasDerivAt (p a) (dp a) t)
+    (hq : ∀ a, HasDerivAt (q a) (dq a) t) :
+    tensorConnection s Γ (fun a b => p a t*q b t)
+      (fun a b => deriv (fun x => p a x*q b x) t) i j =
+    covectorConnection s Γ (fun a => p a t) dp i*q j t+
+      p i t*covectorConnection s Γ (fun a => q a t) dq j := by
+  have he : (fun a b => deriv (fun x => p a x*q b x) t) =
+      fun a b => dp a*q b t+p a t*dq b := by
+    funext a b
+    exact ((hp a).mul (hq b)).deriv
+  rw [he]
+  exact covector_outer_connection_rule s Γ _ _ dp dq i j
+
+/-- A metric-compatible connection obeys ∇(g S)=g dS for an actual
+differentiable scalar S. Metric compatibility is explicitly required. -/
+theorem metric_scalar_connection_rule {d : Type*} (s : Finset d)
+    (Γ g dg : d → d → ℝ) (S dS : ℝ) (i j : d)
+    (hmetric : tensorConnection s Γ g dg i j = 0) :
+    tensorConnection s Γ (fun a b => g a b*S)
+      (fun a b => dg a b*S+g a b*dS) i j = g i j*dS := by
+  have h1 : (s.sum fun l => Γ i l*(g l j*S)) =
+      (s.sum fun l => Γ i l*g l j)*S := by
+    rw [Finset.sum_mul]
+    apply Finset.sum_congr rfl
+    intro l hl
+    ring
+  have h2 : (s.sum fun l => Γ j l*(g i l*S)) =
+      (s.sum fun l => Γ j l*g i l)*S := by
+    rw [Finset.sum_mul]
+    apply Finset.sum_congr rfl
+    intro l hl
+    ring
+  unfold tensorConnection at hmetric ⊢
+  rw [h1, h2]
+  linear_combination S*hmetric
+
+/-- The connection is linear on covariant rank-two tensors. -/
+theorem tensor_connection_linear_combination {d : Type*} (s : Finset d)
+    (Γ U V dU dV : d → d → ℝ) (a b : ℝ) (i j : d) :
+    tensorConnection s Γ (fun k l => a*U k l+b*V k l)
+      (fun k l => a*dU k l+b*dV k l) i j =
+    a*tensorConnection s Γ U dU i j+b*tensorConnection s Γ V dV i j := by
+  have h1 (k l : d) :
+      (s.sum fun z => Γ k z*(a*U z l+b*V z l)) =
+      a*(s.sum fun z => Γ k z*U z l)+b*(s.sum fun z => Γ k z*V z l) := by
+    rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
+    apply Finset.sum_congr rfl
+    intro z hz
+    ring
+  have h2 (k l : d) :
+      (s.sum fun z => Γ l z*(a*U k z+b*V k z)) =
+      a*(s.sum fun z => Γ l z*U k z)+b*(s.sum fun z => Γ l z*V k z) := by
+    rw [Finset.mul_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
+    apply Finset.sum_congr rfl
+    intro z hz
+    ring
+  simp only [tensorConnection, h1, h2]
+  ring
+
+/-- Local stress derivative from actual chart-line derivatives and
+metric compatibility. S is the scalar kinetic-plus-mass trace; its
+derivative is supplied by the field/metric contraction rule.
+No global manifold or Levi-Civita existence theorem is claimed. -/
+theorem stress_actual_connection_derivative {d : Type*} (s : Finset d)
+    (Γ : d → d → ℝ) (p : d → ℝ → ℝ) (g : d → d → ℝ → ℝ)
+    (S : ℝ → ℝ) (dp : d → ℝ) (dg : d → d → ℝ)
+    (dS t : ℝ) (i j : d)
+    (hp : ∀ a, HasDerivAt (p a) (dp a) t)
+    (hg : ∀ a b, HasDerivAt (g a b) (dg a b) t)
+    (hS : HasDerivAt S dS t)
+    (hmetric : tensorConnection s Γ (fun a b => g a b t) dg i j = 0) :
+    tensorConnection s Γ
+      (fun a b => 2*(p a t*p b t)-g a b t*S t)
+      (fun a b => deriv (fun x => 2*(p a x*p b x)-g a b x*S x) t) i j =
+      2*(covectorConnection s Γ (fun a => p a t) dp i*p j t+
+        p i t*covectorConnection s Γ (fun a => p a t) dp j)-g i j t*dS := by
+  have he : (fun a b => deriv (fun x => 2*(p a x*p b x)-g a b x*S x) t) =
+      fun a b => 2*(dp a*p b t+p a t*dp b)-(dg a b*S t+g a b t*dS) := by
+    funext a b
+    exact ((((hp a).mul (hp b)).const_mul 2).sub ((hg a b).mul hS)).deriv
+  rw [he]
+  have hval : (fun a b => 2*(p a t*p b t)-g a b t*S t) =
+      fun a b => 2*(p a t*p b t)+(-1)*(g a b t*S t) := by
+    funext a b
+    ring
+  have hder : (fun a b => 2*(dp a*p b t+p a t*dp b)-(dg a b*S t+g a b t*dS)) =
+      fun a b => 2*(dp a*p b t+p a t*dp b)+(-1)*(dg a b*S t+g a b t*dS) := by
+    funext a b
+    ring
+  rw [hval, hder, tensor_connection_linear_combination,
+    covector_outer_connection_rule,
+    metric_scalar_connection_rule s Γ _ dg (S t) dS i j hmetric]
+  ring
+
+/-- Strict prime counting and the normalized logarithmic count both
+vanish up to and including 2. -/
+theorem counting_zero_below_two (x : ℝ) (hx : x ≤ 2) :
+    strictPrimeCount x = 0 ∧ logCount x = 0 := by
+  constructor
+  · have hc : Nat.ceil x ≤ 2 := Nat.ceil_le.mpr (by exact_mod_cast hx)
+    have hz : Nat.primeCounting' 2 = 0 := by decide
+    have hh := Nat.monotone_primeCounting' hc
+    rw [hz] at hh
+    simp [strictPrimeCount, Nat.eq_zero_of_le_zero hh]
+  · simp [logCount, Set.Ioo_eq_empty_of_le hx]
+
+/-- The normalized logarithmic count is nonnegative at every real x. -/
+theorem log_count_nonnegative (x : ℝ) : 0 ≤ logCount x := by
+  unfold logCount
+  apply MeasureTheory.setIntegral_nonneg measurableSet_Ioo
+  intro y hy
+  exact inv_nonneg.mpr (Real.log_pos (by linarith [hy.1])).le
+
+/-- The smooth counting function is bounded on every finite positive
+interval, using actual integrability of 1/log on [2,B]. -/
+theorem log_count_monotone (x B : ℝ) (hx : x ≤ B) :
+    logCount x ≤ logCount B := by
+  unfold logCount
+  have hc : ContinuousOn (fun y : ℝ => (Real.log y)⁻¹) (Set.Icc 2 B) := by
+    apply ContinuousOn.inv₀
+    · exact Real.continuousOn_log.mono (fun y hy => by
+        have h : 0 < y := by linarith [hy.1]
+        simpa using h.ne')
+    · intro y hy
+      exact (Real.log_pos (by linarith [hy.1])).ne'
+  have hi : MeasureTheory.IntegrableOn (fun y : ℝ => (Real.log y)⁻¹)
+      (Set.Ioo 2 B) := hc.integrableOn_Icc.mono_set Set.Ioo_subset_Icc_self
+  apply MeasureTheory.setIntegral_mono_set hi
+  · apply (MeasureTheory.ae_restrict_iff' measurableSet_Ioo).2
+    filter_upwards [] with y hy
+    exact inv_nonneg.mpr (Real.log_pos (by linarith [hy.1])).le
+  · exact Filter.Eventually.of_forall (fun y hy => ⟨hy.1, hy.2.trans_le hx⟩)
+
+/-- An eventual RH-type estimate implies the global zero-extended
+estimate used by the verified heat-trace theorem. The finite interval
+is handled explicitly, rather than assuming the stronger hypothesis. -/
+theorem eventual_prime_bound_global (C B : ℝ) (hC : 0 ≤ C) (hB : 2 ≤ B)
+    (h : ∀ x : ℝ, B ≤ x → |strictPrimeCount x-logCount x| ≤
+      C*x^(1/2:ℝ)*Real.log x) :
+    ∃ D : ℝ, 0 ≤ D ∧ ∀ x : ℝ, 0 < x →
+      |strictPrimeCount x-logCount x| ≤ D*x^(1/2:ℝ)*max 0 (Real.log x) := by
+  let M := strictPrimeCount B+logCount B
+  let L := Real.log (2:ℝ)
+  have hL : 0 < L := Real.log_pos (by norm_num)
+  have hM : 0 ≤ M := add_nonneg (by positivity [strictPrimeCount]) (log_count_nonnegative B)
+  let D := max C (M/L)
+  have hD : 0 ≤ D := hC.trans (le_max_left _ _)
+  refine ⟨D, hD, ?_⟩
+  intro x hx
+  by_cases hlow : x ≤ 2
+  · obtain ⟨hp, hl⟩ := counting_zero_below_two x hlow
+    rw [hp, hl, sub_self, abs_zero]
+    exact mul_nonneg (mul_nonneg hD (Real.rpow_nonneg hx.le _)) (le_max_left _ _)
+  have hx2 : 2 < x := lt_of_not_ge hlow
+  have hlog : L ≤ Real.log x := Real.log_le_log (by norm_num) hx2.le
+  have hlog0 : 0 ≤ Real.log x := hL.le.trans hlog
+  rw [max_eq_right hlog0]
+  by_cases hlarge : B ≤ x
+  · exact (h x hlarge).trans (mul_le_mul_of_nonneg_right
+      (mul_le_mul_of_nonneg_right (le_max_left C (M/L)) (Real.rpow_nonneg hx.le _)) hlog0)
+  have hxb : x ≤ B := le_of_not_ge hlarge
+  have hp0 : 0 ≤ strictPrimeCount x := by positivity [strictPrimeCount]
+  have hpb : strictPrimeCount x ≤ strictPrimeCount B := by
+    unfold strictPrimeCount
+    exact_mod_cast Nat.monotone_primeCounting' (Nat.ceil_le_ceil hxb)
+  have hl0 := log_count_nonnegative x
+  have hlb := log_count_monotone x B hxb
+  have hlocal : |strictPrimeCount x-logCount x| ≤ M := by
+    rw [abs_le]
+    constructor <;> dsimp [M] <;> linarith
+  have hD' : M ≤ D*L := (div_le_iff₀ hL).mp (le_max_right C (M/L))
+  have hsqrt : 1 ≤ x^(1/2:ℝ) := Real.one_le_rpow (by linarith) (by norm_num)
+  have hDL : D*L ≤ D*Real.log x := mul_le_mul_of_nonneg_left hlog hD
+  have hDL' : D*Real.log x ≤ (D*x^(1/2:ℝ))*Real.log x := by
+    apply mul_le_mul_of_nonneg_right _ hlog0
+    simpa using mul_le_mul_of_nonneg_left hsqrt hD
+  exact hlocal.trans (hD'.trans (hDL.trans hDL'))
+
+/-- End-to-end spectral estimate from an eventual prime-counting
+bound with one constant uniform in τ. This is the usual von Koch
+form of the input, still not a proof of RH -> von Koch. -/
+theorem prime_heat_trace_eventual_rh (C B : ℝ) (hC : 0 ≤ C) (hB : 2 ≤ B)
+    (h : ∀ x : ℝ, B ≤ x → |strictPrimeCount x-logCount x| ≤
+      C*x^(1/2:ℝ)*Real.log x) :
+    ∃ D : ℝ, 0 ≤ D ∧ ∀ τ : ℝ, 0 < τ → -Real.log τ ≥ 1 →
+      |(∑' n : ℕ, Real.exp (-τ*(Nat.nth Nat.Prime n : ℝ))) -
+        (∫ p in Set.Ioi (2:ℝ), Real.exp (-τ*p)/Real.log p)| ≤
+        D*τ^(-1/2:ℝ)*(Real.Gamma (3/2)+Real.Gamma (5/2))*(-Real.log τ) := by
+  obtain ⟨D, hD, hglobal⟩ := eventual_prime_bound_global C B hC hB h
+  exact ⟨D, hD, fun τ hτ hsmall =>
+    prime_heat_trace_conditional_rh D τ hD hτ hsmall hglobal⟩
 
 end MicroMacro
 
@@ -1197,3 +1504,18 @@ end MicroMacro
 #print axioms MicroMacro.prime_heat_trace_counting
 #print axioms MicroMacro.smooth_heat_trace_counting
 #print axioms MicroMacro.prime_heat_trace_conditional_rh
+#print axioms MicroMacro.unit_phase_inner
+#print axioms MicroMacro.horizontal_projection_phase
+#print axioms MicroMacro.projective_pullback_gauge
+#print axioms MicroMacro.normalized_curve_tangent
+#print axioms MicroMacro.projective_curve_gauge
+#print axioms MicroMacro.covector_outer_connection_rule
+#print axioms MicroMacro.covector_outer_actual_derivative
+#print axioms MicroMacro.metric_scalar_connection_rule
+#print axioms MicroMacro.tensor_connection_linear_combination
+#print axioms MicroMacro.stress_actual_connection_derivative
+#print axioms MicroMacro.counting_zero_below_two
+#print axioms MicroMacro.log_count_nonnegative
+#print axioms MicroMacro.log_count_monotone
+#print axioms MicroMacro.eventual_prime_bound_global
+#print axioms MicroMacro.prime_heat_trace_eventual_rh
