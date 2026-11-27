@@ -132,6 +132,7 @@ variable {M : Type*} [TopologicalSpace M] [ChartedSpace E4 M]
 noncomputable def chartManifoldTransition (a b : M) : E4 → E4 :=
   extChartAt I4 b ∘ (extChartAt I4 a).symm
 
+omit [IsManifold I4 (⊤ : WithTop ℕ∞) M] in
 theorem chart_manifold_transition_value (a b p : M)
     (ha : p ∈ (extChartAt I4 a).source) :
     chartManifoldTransition a b (extChartAt I4 a p) = extChartAt I4 b p := by
@@ -152,6 +153,7 @@ theorem chart_manifold_transition_regular (a b p : M)
   simpa [chartManifoldTransition, extChartAt, ModelWithCorners.range_eq_univ,
     contDiffWithinAt_univ] using h
 
+omit [IsManifold I4 (⊤ : WithTop ℕ∞) M] in
 theorem chart_manifold_inverse_germ (a b p : M)
     (ha : p ∈ (extChartAt I4 a).source)
     (hb : p ∈ (extChartAt I4 b).source) :
@@ -171,12 +173,14 @@ theorem chart_manifold_inverse_germ (a b p : M)
     chart_manifold_transition_value b a q hqb]
   rfl
 
+omit [IsManifold I4 (⊤ : WithTop ℕ∞) M] in
 theorem chart_manifold_tangent_jacobian (a b p : M) :
     tangentCoordChange I4 a b p =
       fderiv ℝ (chartManifoldTransition a b) (extChartAt I4 a p) := by
   rw [tangentCoordChange_def, ModelWithCorners.range_eq_univ, fderivWithin_univ]
   rfl
 
+omit [IsManifold I4 (⊤ : WithTop ℕ∞) M] in
 theorem chart_manifold_tangent_cocycle (a b c p : M) (v : E4)
     (ha : p ∈ (extChartAt I4 a).source)
     (hb : p ∈ (extChartAt I4 b).source)

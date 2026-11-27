@@ -99,7 +99,8 @@ noncomputable def chartIntrinsicForm
     (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
     (a : M) (z : E4) : E4 →L[ℝ] E4 →L[ℝ] ℝ :=
   let p := (extChartAt I4 a).symm z
-  (G p).bilinearComp (tangentCoordChange I4 a p p) (tangentCoordChange I4 a p p)
+  let B : E4 →L[ℝ] E4 →L[ℝ] ℝ := G p
+  B.bilinearComp (tangentCoordChange I4 a p p) (tangentCoordChange I4 a p p)
 
 noncomputable def chartIntrinsicComponents
     (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
@@ -119,8 +120,7 @@ theorem chart_intrinsic_form_value
     chartIntrinsicForm G a (extChartAt I4 a p) u v =
       G p (tangentCoordChange I4 a p p u) (tangentCoordChange I4 a p p v) := by
   unfold chartIntrinsicForm
-  rw [(extChartAt I4 a).left_inv ha]
-  rfl
+  rw [(extChartAt I4 a).left_inv ha] <;> rfl
 
 theorem chart_intrinsic_components_bundle
     (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
@@ -165,7 +165,7 @@ theorem chart_intrinsic_metric_germ
       (isOpen_extChartAt_source a).mem_nhds ha,
     show ∀ᶠ q in 𝓝 p, q ∈ (extChartAt I4 b).source from
       (isOpen_extChartAt_source b).mem_nhds hb] with q hqa hqb
-  unfold chartPullbackMetric
+  simp only [chartPullbackMetric]
   rw [chart_intrinsic_components_bundle, chart_intrinsic_components_bundle,
     chart_manifold_transition_value a b q hqa, ← chart_manifold_tangent_jacobian a b q,
     chart_intrinsic_form_value G a q hqa, chart_intrinsic_form_value G b q hqb,
@@ -176,6 +176,7 @@ theorem chart_intrinsic_components_symmetric
     (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
     (hs : ∀ p u v, G p u v = G p v u) (a : M) (z : E4) (i j : Fin 4) :
     chartIntrinsicComponents G a z i j = chartIntrinsicComponents G a z j i := by
+  unfold chartIntrinsicComponents chartIntrinsicForm
   exact hs _ _ _
 
 /-- Tangent transition and its reverse constitute a linear equivalence. -/
@@ -185,15 +186,13 @@ noncomputable def chartTangentFrame (a p : M)
     invFun := tangentCoordChange I4 p a p
     left_inv := by
       intro u
-      rw [show (tangentCoordChange I4 a p p).toLinearMap u =
-        tangentCoordChange I4 a p p u from rfl,
-        chart_manifold_tangent_cocycle a p a p u ha (mem_extChartAt_source p) ha]
+      change tangentCoordChange I4 p a p (tangentCoordChange I4 a p p u) = u
+      rw [chart_manifold_tangent_cocycle a p a p u ha (mem_extChartAt_source p) ha]
       exact tangentCoordChange_self ha
     right_inv := by
       intro u
-      rw [show (tangentCoordChange I4 a p p).toLinearMap (tangentCoordChange I4 p a p u) =
-        tangentCoordChange I4 a p p (tangentCoordChange I4 p a p u) from rfl,
-        chart_manifold_tangent_cocycle p a p p u (mem_extChartAt_source p) ha (mem_extChartAt_source p)]
+      change tangentCoordChange I4 a p p (tangentCoordChange I4 p a p u) = u
+      rw [chart_manifold_tangent_cocycle p a p p u (mem_extChartAt_source p) ha (mem_extChartAt_source p)]
       exact tangentCoordChange_self (mem_extChartAt_source p) }
 
 theorem chart_intrinsic_signature
@@ -271,11 +270,15 @@ theorem chart_intrinsic_global_section
     apply hc.contMDiffWithinAt.congr
     · intro b hb
       change value a b = q (extChartAt I4 a b)
-      dsimp [value, q]
-      rw [chart_intrinsic_field_value W a b hb]
+      exact congrArg (fun w : E4 => chartCovariantDerivative
+        (fun z u v => chartConstructedCoefficients (chartIntrinsicComponents G a) z u v)
+        (chartIntrinsicField X a) (extChartAt I4 a b) w)
+        (chart_intrinsic_field_value W a b hb).symm
     · change value a p = q (extChartAt I4 a p)
-      dsimp [value, q]
-      rw [chart_intrinsic_field_value W a p ha]
+      exact congrArg (fun w : E4 => chartCovariantDerivative
+        (fun z u v => chartConstructedCoefficients (chartIntrinsicComponents G a) z u v)
+        (chartIntrinsicField X a) (extChartAt I4 a p) w)
+        (chart_intrinsic_field_value W a p ha).symm
 
 
 /-- Globally defined operator in the canonical chart of each point.
@@ -284,7 +287,7 @@ for regular inputs; this definition itself is total. -/
 noncomputable def chartIntrinsicCovariantDerivative
     (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
     (W X : ∀ p : M, TangentSpace I4 p) (p : M) : TangentSpace I4 p :=
-  chartCovariantDerivative
+  chartCovariantDerivative (E := E4)
     (fun z u v => chartConstructedCoefficients (chartIntrinsicComponents G p) z u v)
     (chartIntrinsicField X p) (extChartAt I4 p p) (W p)
 
