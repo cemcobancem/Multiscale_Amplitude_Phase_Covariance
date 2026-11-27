@@ -2,7 +2,7 @@
 
 ## Current checkpoint — 27 November 2026
 
-146 theorems and 28 definitions at ad2cf37bae34970a403d5782f8b613bd6c446828 passed both push and PR verification. See [baseline and evidence](STEP2_BASELINE_V1.0.md) and [individual dependencies](STEP2_AXIOM_AUDIT.tsv). Integration approval remains separate.
+146 theorems and 28 definitions at ad2cf37bae34970a403d5782f8b613bd6c446828 passed both push and PR verification. See [baseline and evidence](STEP2_BASELINE_V1.0.md) and [individual dependencies](STEP2_AXIOM_AUDIT.tsv). Both consolidation runs (45948547155 and 45948556704) also passed with identical declaration dependencies. Owner-approved PR #17 was merged at 8bd9a1bcaeb2f297a890f364d75ede9ac9fb5c1a. Fresh main verification: [45955201543](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45955201543).
 
 ## Historical ledger (26 November 2026; superseded status)
 

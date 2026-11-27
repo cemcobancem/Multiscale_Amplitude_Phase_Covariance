@@ -2,7 +2,7 @@
 
 ## Current Step 2 checkpoint
 
-See [Step 2 v1.0 consolidation candidate](STEP2_BASELINE_V1.0.md) for the frozen source, reproducibility details and both successful 174-declaration audits. [Declaration-level dependencies](STEP2_AXIOM_AUDIT.tsv) are preserved in version control. Integration verification is required separately.
+See [Step 2 v1.0 baseline](STEP2_BASELINE_V1.0.md) for the frozen source, reproducibility details and both successful 174-declaration audits. [Declaration-level dependencies](STEP2_AXIOM_AUDIT.tsv) are preserved in version control. Both integration audits passed and PR #17 was merged with owner approval. The baseline document links the fresh main verification run.
 
 ## Historical notes (superseded by the current checkpoint)
 

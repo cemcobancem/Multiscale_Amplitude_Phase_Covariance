@@ -1,12 +1,15 @@
-# Paper I — Step 2 v1.0 consolidation candidate
+# Paper I — Step 2 v1.0 baseline
 
-**Status:** The 174-declaration source checkpoint is verified; integration CI and explicit owner approval are required before merging into main or creating the final release tag. Step 3 is out of scope.
+**Status:** Owner-approved and merged into main on 27 November 2026 via [PR #17](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/pull/17). Both integration workflows passed for the exact merged repository tree. Fresh post-merge CI evidence is linked below; its successful completion is the final release-verification gate. Step 3 is out of scope.
 
 ## Frozen mathematical baseline
 
 - Verified proof commit: `ad2cf37bae34970a403d5782f8b613bd6c446828`.
 - Exact Covariance.lean Git blob: `8481ef5c36f41b016b9fe5d99c9747fea0cbb71e` (must be unchanged by consolidation).
-- Main baseline: `15017f681226a6755dde8a95c2e8253d0ee3bc2c`.
+- Previous main baseline: `15017f681226a6755dde8a95c2e8253d0ee3bc2c`.
+- Approved integration commit: `f849cd1c5bf2ed77b3f82750ca96ff4f9813f576`.
+- Official mathematical baseline merge commit: `8bd9a1bcaeb2f297a890f364d75ede9ac9fb5c1a` (regular merge; both parent histories retained).
+- Verified integration and merge tree: `25a7f177869f91eed225ed2fac2ed85ad0375929`.
 - Lean 4.24.0; Mathlib v4.24.0 resolved at `f897ebcf72cd16f89ab4577d0c826cd14afaafc7`.
 - 146 named theorems, 28 named definitions, 174 unique explicit axiom-audit commands. All 174 have the same dependency set: Classical.choice, Quot.sound, propext. No sorryAx or custom axioms in either successful checkpoint run.
 
@@ -29,7 +32,17 @@ The chartwise smooth field is not a separately bundled ContMDiff theorem on a fi
 
 Both logs independently report 174 clean unique declarations; the permanent [declaration dependency ledger](STEP2_AXIOM_AUDIT.tsv) records their exact sets, extracted from both successful logs. The original CI artifacts contain the raw axiom log, Lean/Lake versions and resolved manifest and expire in February 2027; archive externally before expiry if long-term raw artifacts are needed.
 
-## Reproduce and approve
+## Consolidation and main verification evidence
+
+| Workflow | Run | Result | Artifact |
+|---|---|---|---|
+| Integration push | [45948547155](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45948547155) | Passed, 174/174 | [15175837139](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45948547155/artifacts/15175837139) |
+| Integration PR | [45948556704](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45948556704) | Passed, 174/174 | [15176416050](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45948556704/artifacts/15176416050) |
+| Post-merge main | [45955201543](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45955201543) | Consult run for final result | See run |
+
+Both integration runs independently matched every row of STEP2_AXIOM_AUDIT.tsv. Artifact SHA-256 values, respectively: `3a0d2a975509c50ded953e030120004aebb92a481e49b128fc277e598afb641a` and `9ca0445f3281f5989397435aeebdba8282280b37b7224965d97e2ed050bbaecd`. Original integration artifacts expire in February 2027. The approved merge commit has the exact same tree as the integration commit, and Covariance.lean is byte-for-byte identical to the certified proof checkpoint.
+
+## Reproduce
 
 ```sh
 lake update
@@ -38,6 +51,6 @@ lake build
 lake env lean Covariance.lean
 ```
 
-CI checks exactly 146 theorems and 28 definitions, complete unique audit coverage, allowed axioms and absence of sorryAx; uploads evidence. Consolidation CI must succeed on both push and PR. Confirm source blob, unchanged main, and owner approval before merging. Proposed final tag: `paper-i-step2-v1.0` (not created by this candidate). Lake package version remains 0.2.0; the Step 2 milestone version is distinct.
+CI checks exactly 146 theorems and 28 definitions, complete unique audit coverage, allowed axioms and absence of sorryAx; uploads evidence. Both integration checks passed and the approved regular merge was executed. Final release verification additionally requires the successful post-merge main audit. Proposed final tag: `paper-i-step2-v1.0`; create it after successful main CI at the exact mathematical baseline merge commit above (tag creation is not exposed by the current GitHub interface). Lake package version remains 0.2.0; the Step 2 milestone version is distinct.
 
-**Do not begin Step 3 in this branch.**
+**Step 3 is not started.**
