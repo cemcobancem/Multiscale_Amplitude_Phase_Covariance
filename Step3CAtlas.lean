@@ -65,7 +65,12 @@ theorem chart_metric_bundle_differentiable_at
     g y i j • ((ContinuousLinearMap.proj (R := ℝ) i : (Fin 4 → ℝ) →L[ℝ] ℝ).smulRight
       (ContinuousLinearMap.proj (R := ℝ) j : (Fin 4 → ℝ) →L[ℝ] ℝ))) ?_
   intro j hj
-  exact (h i j).smul (differentiableAt_const _)
+  let B : (Fin 4 → ℝ) →L[ℝ] (Fin 4 → ℝ) →L[ℝ] ℝ :=
+    (ContinuousLinearMap.proj (R := ℝ) i : (Fin 4 → ℝ) →L[ℝ] ℝ).smulRight
+      (ContinuousLinearMap.proj (R := ℝ) j : (Fin 4 → ℝ) →L[ℝ] ℝ)
+  have hB : DifferentiableAt ℝ (fun _ : Fin 4 → ℝ => B) x :=
+    differentiableAt_const B
+  exact (h i j).smul hB
 
 /-- Linear maps out of the coordinate model are determined on its basis. -/
 theorem chart_basis_ext {W : Type*} [NormedAddCommGroup W] [NormedSpace ℝ W]
