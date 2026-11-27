@@ -21,8 +21,8 @@ set_option quotPrecheck false in
 local notation "Field4" => (∀ p : M, TangentSpace I4 p)
 set_option quotPrecheck false in
 local notation "Metric4" => (∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
-local notation "Local4" p => { X : Field4 //
-  DifferentiableAt ℝ (chartIntrinsicField X p) (extChartAt I4 p p) }
+local notation "Local4" p:arg => ({ X : Field4 //
+  DifferentiableAt ℝ (chartIntrinsicField X p) (extChartAt I4 p p) })
 
 /-- Actual manifold derivative of an extended chart agrees with the tangent frame. -/
 theorem chart_intrinsic_mfderiv_chart (a p : M)
@@ -63,11 +63,15 @@ theorem chart_intrinsic_bracket (X Y : Field4) (p : M) :
   have hself : (mfderiv I4 I4 (extChartAt I4 p) p : E4 →L[ℝ] E4) =
       ContinuousLinearMap.id ℝ E4 := by
     rw [chart_intrinsic_mfderiv_chart p p (mem_extChartAt_source p)]
-    ext v
-    exact tangentCoordChange_self (mem_extChartAt_source p)
+    apply ContinuousLinearMap.ext
+    intro v
+    exact tangentCoordChange_self (I := I4) (mem_extChartAt_source p)
   simp only [VectorField.mlieBracket, VectorField.mlieBracketWithin_apply,
     Set.preimage_univ, Set.univ_inter, ModelWithCorners.range_eq_univ] at *
-  rw [hself, ContinuousLinearMap.inverse_id, ContinuousLinearMap.id_apply]
+  rw [hself]
+  have hi : (ContinuousLinearMap.id ℝ E4).inverse = ContinuousLinearMap.id ℝ E4 :=
+    ContinuousLinearMap.inverse_eq (by simp) (by simp)
+  rw [hi, ContinuousLinearMap.id_apply]
   simp only [VectorField.lieBracketWithin, fderivWithin_univ]
   rw [heX.fderiv_eq, heY.fderiv_eq, heX.eq_of_nhds, heY.eq_of_nhds,
     chart_intrinsic_field_value X p p (mem_extChartAt_source p),
@@ -198,7 +202,8 @@ theorem chart_intrinsic_local_field_exists (p : M) (v : E4) :
   have h : DifferentiableAt ℝ (fun _ : E4 => v) (extChartAt I4 p p) :=
     (contDiffAt_const : ContDiffAt ℝ 1 (fun _ : E4 => v) (extChartAt I4 p p)).differentiableAt (by simp)
   refine ⟨⟨X, he.differentiableAt_iff.mpr h⟩, ?_⟩
-  exact tangentCoordChange_self (mem_extChartAt_source p)
+  change tangentCoordChange I4 p p p v = v
+  exact tangentCoordChange_self (I := I4) (mem_extChartAt_source p)
 
 /-- Intrinsic LC laws on locally differentiable fields at a point.
 This imposes no coordinate coefficient form on the competing operator. -/
