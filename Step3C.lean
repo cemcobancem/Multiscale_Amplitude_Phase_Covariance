@@ -101,11 +101,11 @@ theorem chart_directional_bilinear
   have h1 := h.clm_apply (hasDerivAt_const (0 : ℝ) u)
   have h2 := h1.clm_apply (hasDerivAt_const (0 : ℝ) v)
   have hd : DifferentiableAt ℝ (fun y => g y u v) x :=
-    (hg.clm_apply differentiableAt_const).clm_apply differentiableAt_const
+    (hg.clm_apply (differentiableAt_const u)).clm_apply (differentiableAt_const v)
   have h3 := chart_line_derivative (fun y => g y u v) x w hd
   unfold chartDirectional
   apply h3.unique
-  simpa only [map_zero, add_zero, ContinuousLinearMap.add_apply] using h2
+  simpa only [zero_smul, add_zero, map_zero, ContinuousLinearMap.add_apply] using h2
 
 /-- Actual metric pullback derivative: chain rule plus both Jacobian
 derivative terms. No derivative transformation is a hypothesis. -/
@@ -120,31 +120,27 @@ theorem chart_pullback_metric_derivative (f : E → F)
       g (f x) (chartHessian f x w u) (fderiv ℝ f x v) +
       g (f x) (fderiv ℝ f x u) (chartHessian f x w v) := by
   have hl := chart_line_derivative f x w hf
-  have hG := hg.hasFDerivAt.comp_hasDerivAt_of_eq (0 : ℝ) hl
-    (by simp : f x = f (x + (0 : ℝ) • w))
-  have hG' : HasDerivAt (fun t : ℝ => g (f (x + t • w)))
-      (fderiv ℝ g (f x) (fderiv ℝ f x w)) 0 := by
-    simpa only [Function.comp_def] using hG
+  have hG' := chart_line_derivative (fun y => g (f y)) x w (hg.comp x hf)
+  rw [fderiv_comp' x hg hf, ContinuousLinearMap.comp_apply] at hG'
   have hj := chart_line_derivative (fderiv ℝ f) x w hJ
   have hu := hj.clm_apply (hasDerivAt_const (0 : ℝ) u)
   have hv := hj.clm_apply (hasDerivAt_const (0 : ℝ) v)
   have hu' : HasDerivAt (fun t : ℝ => fderiv ℝ f (x + t • w) u)
       (chartHessian f x w u) 0 := by
-    simpa only [chartHessian, map_zero, add_zero] using hu
+    simpa only [chartHessian, zero_smul, add_zero, map_zero] using hu
   have hv' : HasDerivAt (fun t : ℝ => fderiv ℝ f (x + t • w) v)
       (chartHessian f x w v) 0 := by
-    simpa only [chartHessian, map_zero, add_zero] using hv
+    simpa only [chartHessian, zero_smul, add_zero, map_zero] using hv
   have hfull := (hG'.clm_apply hu').clm_apply hv'
   have hdiff : DifferentiableAt ℝ (fun y => chartPullbackMetric f g y u v) x :=
-    ((hg.comp x hf).clm_apply (hJ.clm_apply differentiableAt_const)).clm_apply
-      (hJ.clm_apply differentiableAt_const)
+    ((hg.comp x hf).clm_apply (hJ.clm_apply (differentiableAt_const u))).clm_apply
+      (hJ.clm_apply (differentiableAt_const v))
   have hactual := chart_line_derivative (fun y => chartPullbackMetric f g y u v) x w hdiff
   rw [chart_directional_bilinear g (f x) (fderiv ℝ f x w)
     (fderiv ℝ f x u) (fderiv ℝ f x v) hg]
   unfold chartDirectional
   apply hactual.unique
-  simpa only [chartPullbackMetric, zero_smul, add_zero, ContinuousLinearMap.add_apply]
-    using hfull
+  simpa only [chartPullbackMetric, zero_smul, add_zero, ContinuousLinearMap.add_apply] using hfull
 
 /-- The directional Koszul identity follows from the two LC conditions. -/
 theorem chart_lc_lowered (G : E → E → E → ℝ) (x : E)
@@ -247,7 +243,7 @@ theorem chart_lc_metric_germ (G H : E → E → E → ℝ) (x : E)
     unfold chartDirectional
     rw [(he u v).fderiv_eq]
   have hval (a b : E) : G x a b = H x a b :=
-    Filter.EventuallyEq.eq_of_nhds (he a b)
+    show (fun y => G y a b) x = (fun y => H y a b) x from (he a b).eq_of_nhds
   rw [← hder, hc.2 w u v, hval, hval]
 
 /-- Actual nonlinear chart overlap law, proved by pointwise uniqueness.
@@ -336,7 +332,7 @@ vectors. -/
 theorem chart_coordinate_pair_basis (g : Fin 4 → Fin 4 → ℝ) (i j : Fin 4) :
     coordinateMetricPair g (Pi.single i (1 : ℝ)) (Pi.single j (1 : ℝ)) =
       g i j := by
-  simp [coordinateMetricPair, Pi.single_apply, ite_mul, mul_ite]
+  simp [coordinateMetricPair, Pi.single_apply, mul_ite]
 
 /-- The actual scalar directional derivative of the coordinate metric
 on basis vectors is the existing Step 3A partial derivative. -/
