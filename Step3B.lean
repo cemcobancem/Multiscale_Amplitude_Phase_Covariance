@@ -246,21 +246,21 @@ theorem metric_christoffel_smooth
   unfold metricChristoffel christoffelFromJet christoffelFirst
   apply ContDiff.sum
   intro r hr
-  exact (hAs r l).mul (((metric_partial_smooth g hs k i r).add
+  exact (hAs r l).mul ((((metric_partial_smooth g hs k i r).add
     (metric_partial_smooth g hs i k r)).sub
-    (metric_partial_smooth g hs r k i)).div_const 2
+    (metric_partial_smooth g hs r k i)).div_const 2)
 
 /-- Differentiate the actual inverse identity along a coordinate line. -/
 theorem coordinate_inverse_product_derivative
     (g A : (Fin 4 → ℝ) → Fin 4 → Fin 4 → ℝ)
     (h : lorentzCoordinateData g A) (x : Fin 4 → ℝ) (k i j : Fin 4) :
-    (∑ l, metricPartial A x k i l * g x l j +
-      A x i l * metricPartial g x k l j) = 0 := by
+    (∑ l, (metricPartial A x k i l * g x l j +
+      A x i l * metricPartial g x k l j)) = 0 := by
   rcases h with ⟨hg, hA, hinv, hs, hAs, hsig⟩
   let v : Fin 4 → ℝ := Pi.single k (1 : ℝ)
   have hder : HasDerivAt
-      (fun t : ℝ => ∑ l, A (x + t • v) i l * g (x + t • v) l j)
-      (∑ l, metricPartial A x k i l * g x l j +
+      (fun t : ℝ => Finset.univ.sum fun l : Fin 4 => A (x + t • v) i l * g (x + t • v) l j)
+      (Finset.univ.sum fun l : Fin 4 => metricPartial A x k i l * g x l j +
         A x i l * metricPartial g x k l j) 0 := by
     apply HasDerivAt.fun_sum
     intro l hl
@@ -268,7 +268,7 @@ theorem coordinate_inverse_product_derivative
       ((hAs i l).contDiffAt.differentiableAt (by simp))
     have hb := metric_partial_line_derivative g x k l j
       ((hs l j).contDiffAt.differentiableAt (by simp))
-    simpa [v] using ha.mul hb
+    simpa [v, add_comm, mul_comm] using ha.mul hb
   have he : (fun t : ℝ => ∑ l, A (x + t • v) i l * g (x + t • v) l j) =
       fun _ => if i = j then (1 : ℝ) else 0 := by
     funext t
