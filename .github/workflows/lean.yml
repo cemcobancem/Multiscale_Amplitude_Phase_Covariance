@@ -55,7 +55,7 @@ jobs:
           declarations = theorems + definitions
           assert len(theorems) == 247
           assert len(definitions) == 53
-          assert len(declarations) == 296
+          assert len(declarations) == 300
           assert len(names) == len(declarations)
           assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)
