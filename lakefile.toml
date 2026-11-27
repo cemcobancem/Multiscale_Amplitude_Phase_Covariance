@@ -1,6 +1,6 @@
 name = "PaperI"
 version = "0.2.0"
-defaultTargets = ["Covariance", "Step3A", "Step3B"]
+defaultTargets = ["Covariance", "Step3A", "Step3B", "Step3C"]
 
 [[require]]
 name = "mathlib"
@@ -15,3 +15,6 @@ name = "Step3A"
 
 [[lean_lib]]
 name = "Step3B"
+
+[[lean_lib]]
+name = "Step3C"
