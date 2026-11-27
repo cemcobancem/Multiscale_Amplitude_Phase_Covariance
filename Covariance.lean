@@ -2713,7 +2713,9 @@ theorem projective_ray_quotient_open {E : Type*}
       apply Set.mem_iUnion.2
       refine ⟨c, ?_⟩
       have h : projectiveUnitScale c x = y := Subtype.ext hc
-      exact h ▸ hy
+      change projectiveUnitScale c x ∈ s
+      rw [h]
+      exact hy
     · intro hx
       obtain ⟨c,hc⟩ := Set.mem_iUnion.1 hx
       refine ⟨projectiveUnitScale c x,hc,?_⟩
@@ -2792,7 +2794,9 @@ theorem projective_tensor_joint_smooth {V E : Type*}
     unfold projectiveTensor projectivePullback
     rw [horizontal_gram_subtract _ _ _ (hunit p.1)]
     change inner ℂ (U p) (W p) - star (inner ℂ (N p) (U p))*inner ℂ (N p) (W p) = _
-    rw [inner_conj_symm]
+    have hc : star (inner ℂ (N p) (U p)) = inner ℂ (U p) (N p) :=
+      inner_conj_symm _ _
+    rw [hc]
   rw [he]
   exact (hU.inner ℂ hW).sub ((hU.inner ℂ hN).mul (hN.inner ℂ hW))
 
@@ -2918,9 +2922,9 @@ theorem projective_chart_tensor_overlap {E H : Type*}
       (g.open_source.mem_nhds hx)).differentiableAt (by norm_num)
   have hg : DifferentiableAt ℝ g x := hgc.restrictScalars ℝ
   have hn : DifferentiableAt ℝ n x :=
-    (projective_model_lift_smooth ell b hb e).differentiableAt (by simp)
+    (projective_model_lift_smooth ell b hb e).contDiffAt.differentiableAt (by simp)
   have hm : DifferentiableAt ℝ m (g x) :=
-    (projective_model_lift_smooth ell' b' hb' e').differentiableAt (by simp)
+    (projective_model_lift_smooth ell' b' hb' e').contDiffAt.differentiableAt (by simp)
   have he : ∀ᶠ y in nhds x, inner ℂ (n y) (n y) = 1 ∧
       ∃ c : ℂ, star c*c = 1 ∧ (m ∘ g) y = c • n y := by
     filter_upwards [g.open_source.mem_nhds hx] with y hy
