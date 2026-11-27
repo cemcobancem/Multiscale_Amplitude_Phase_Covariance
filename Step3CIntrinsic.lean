@@ -277,6 +277,127 @@ theorem chart_intrinsic_global_section
       dsimp [value, q]
       rw [chart_intrinsic_field_value W a p ha]
 
+
+/-- Globally defined operator in the canonical chart of each point.
+The global-section theorem supplies chart independence and smoothness
+for regular inputs; this definition itself is total. -/
+noncomputable def chartIntrinsicCovariantDerivative
+    (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
+    (W X : ∀ p : M, TangentSpace I4 p) (p : M) : TangentSpace I4 p :=
+  chartCovariantDerivative
+    (fun z u v => chartConstructedCoefficients (chartIntrinsicComponents G p) z u v)
+    (chartIntrinsicField X p) (extChartAt I4 p p) (W p)
+
+/-- Any section satisfying the local covariant formula equals the
+globally defined operator, by the identity chart transition. -/
+theorem chart_intrinsic_operator_identification
+    (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
+    (W X S : ∀ p : M, TangentSpace I4 p)
+    (hS : ∀ a p, p ∈ (extChartAt I4 a).source →
+      tangentCoordChange I4 p a p (S p) =
+        chartCovariantDerivative
+          (fun z u v => chartConstructedCoefficients (chartIntrinsicComponents G a) z u v)
+          (chartIntrinsicField X a) (extChartAt I4 a p)
+          (tangentCoordChange I4 p a p (W p))) :
+    S = chartIntrinsicCovariantDerivative G W X := by
+  funext p
+  have h := hS p p (mem_extChartAt_source p)
+  rw [tangentCoordChange_self (mem_extChartAt_source p),
+    tangentCoordChange_self (mem_extChartAt_source p)] at h
+  exact h
+
+theorem chart_intrinsic_direction_add
+    (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
+    (W V X : ∀ p : M, TangentSpace I4 p) :
+    chartIntrinsicCovariantDerivative G (fun p => W p + V p) X =
+      fun p => chartIntrinsicCovariantDerivative G W X p +
+        chartIntrinsicCovariantDerivative G V X p := by
+  funext p
+  exact chart_covariant_direction_add (chartConstructedCoefficients (chartIntrinsicComponents G p))
+    (chartIntrinsicField X p) (extChartAt I4 p p) (W p) (V p)
+
+theorem chart_intrinsic_direction_smul
+    (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
+    (a : M → ℝ) (W X : ∀ p : M, TangentSpace I4 p) :
+    chartIntrinsicCovariantDerivative G (fun p => a p • W p) X =
+      fun p => a p • chartIntrinsicCovariantDerivative G W X p := by
+  funext p
+  exact chart_covariant_direction_smul (chartConstructedCoefficients (chartIntrinsicComponents G p))
+    (chartIntrinsicField X p) (extChartAt I4 p p) (W p) (a p)
+
+theorem chart_intrinsic_field_add_rep
+    (X Y : ∀ p : M, TangentSpace I4 p) (a : M) :
+    chartIntrinsicField (fun p => X p + Y p) a =
+      chartIntrinsicField X a + chartIntrinsicField Y a := by
+  funext z
+  simp [chartIntrinsicField, map_add]
+
+theorem chart_intrinsic_field_smul_rep
+    (c : M → ℝ) (X : ∀ p : M, TangentSpace I4 p) (a : M) :
+    chartIntrinsicField (fun p => c p • X p) a =
+      (fun z => c ((extChartAt I4 a).symm z)) • chartIntrinsicField X a := by
+  funext z
+  simp [chartIntrinsicField, map_smul]
+
+theorem chart_intrinsic_field_add
+    (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
+    (W X Y : ∀ p : M, TangentSpace I4 p)
+    (hX : ∀ p, DifferentiableAt ℝ (chartIntrinsicField X p) (extChartAt I4 p p))
+    (hY : ∀ p, DifferentiableAt ℝ (chartIntrinsicField Y p) (extChartAt I4 p p)) :
+    chartIntrinsicCovariantDerivative G W (fun p => X p + Y p) =
+      fun p => chartIntrinsicCovariantDerivative G W X p +
+        chartIntrinsicCovariantDerivative G W Y p := by
+  funext p
+  unfold chartIntrinsicCovariantDerivative
+  rw [chart_intrinsic_field_add_rep]
+  exact chart_covariant_field_add (chartConstructedCoefficients (chartIntrinsicComponents G p))
+    (chartIntrinsicField X p) (chartIntrinsicField Y p) (extChartAt I4 p p) (W p) (hX p) (hY p)
+
+theorem chart_intrinsic_leibniz
+    (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
+    (c : M → ℝ) (W X : ∀ p : M, TangentSpace I4 p)
+    (hc : ∀ p, DifferentiableAt ℝ (fun z => c ((extChartAt I4 p).symm z))
+      (extChartAt I4 p p))
+    (hX : ∀ p, DifferentiableAt ℝ (chartIntrinsicField X p) (extChartAt I4 p p)) :
+    chartIntrinsicCovariantDerivative G W (fun p => c p • X p) =
+      fun p => (fderiv ℝ (fun z => c ((extChartAt I4 p).symm z))
+        (extChartAt I4 p p) (W p)) • X p + c p • chartIntrinsicCovariantDerivative G W X p := by
+  funext p
+  unfold chartIntrinsicCovariantDerivative
+  rw [chart_intrinsic_field_smul_rep, chart_covariant_leibniz _
+    (fun z => c ((extChartAt I4 p).symm z)) (chartIntrinsicField X p)
+    (extChartAt I4 p p) (W p) (hc p) (hX p)]
+  rw [(extChartAt I4 p).left_inv (mem_extChartAt_source p),
+    chart_intrinsic_field_value X p p (mem_extChartAt_source p),
+    tangentCoordChange_self (mem_extChartAt_source p)]
+
+/-- Uniqueness of any locally LC coefficient field, in each actual
+chart, follows from the directional Koszul uniqueness theorem. -/
+theorem chart_intrinsic_coefficient_unique
+    (G : ∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
+    (hs : ∀ p u v, G p u v = G p v u)
+    (hsig : ∀ p, ∃ e : E4 ≃ₗ[ℝ] E4, ∀ u v, G p (e u) (e v) =
+      coordinateMetricPair minkowskiMetric u v)
+    (a p : M) (ha : p ∈ (extChartAt I4 a).source)
+    (hd : ∀ i j, DifferentiableAt ℝ (fun z => chartIntrinsicComponents G a z i j)
+      (extChartAt I4 a p))
+    (D : E4 → E4 → E4)
+    (hD : chartLCAt (fun z u v => chartMetricBundle (chartIntrinsicComponents G a z) u v)
+      (extChartAt I4 a p) D) :
+    D = fun u v => chartConstructedCoefficients (chartIntrinsicComponents G a)
+      (extChartAt I4 a p) u v := by
+  have hsym := chart_intrinsic_components_symmetric G hs a (extChartAt I4 a p)
+  have hsig' := chart_intrinsic_signature G hsig a p ha
+  apply chart_lc_pointwise_unique
+    (fun z u v => chartMetricBundle (chartIntrinsicComponents G a z) u v)
+    (extChartAt I4 a p) (chartMetricBundle (chartIntrinsicComponents G a (extChartAt I4 a p)))
+    (fun u v => rfl)
+    (chart_bundle_symmetry _ hsym)
+    (chart_metric_bundle_nondegenerate _ hsym hsig') D _ hD
+  exact chart_open_domain_directional_lift (chartIntrinsicComponents G a) Set.univ
+    isOpen_univ (extChartAt I4 a p) (Set.mem_univ _)
+    (fun z _ => chart_intrinsic_components_symmetric G hs a z) hd hsig'
+
 end Manifold
 end MicroMacro
 
@@ -295,3 +416,13 @@ end MicroMacro
 #print axioms MicroMacro.chartIntrinsicForm
 #print axioms MicroMacro.chartIntrinsicComponents
 #print axioms MicroMacro.chartTangentFrame
+
+#print axioms MicroMacro.chart_intrinsic_operator_identification
+#print axioms MicroMacro.chart_intrinsic_direction_add
+#print axioms MicroMacro.chart_intrinsic_direction_smul
+#print axioms MicroMacro.chart_intrinsic_field_add_rep
+#print axioms MicroMacro.chart_intrinsic_field_smul_rep
+#print axioms MicroMacro.chart_intrinsic_field_add
+#print axioms MicroMacro.chart_intrinsic_leibniz
+#print axioms MicroMacro.chart_intrinsic_coefficient_unique
+#print axioms MicroMacro.chartIntrinsicCovariantDerivative

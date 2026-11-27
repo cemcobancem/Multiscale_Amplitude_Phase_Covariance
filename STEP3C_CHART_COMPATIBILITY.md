@@ -25,3 +25,7 @@ All six previous runs stopped at the same atlas scalar-field inference error; fi
 ## Intrinsic tangent-fiber representation and global output candidates
 
 Step3CIntrinsic.lean adds 11 theorem candidates and 4 definitions (300 total). Construct coordinate metric components and field representatives from actual tangent-fiber bilinear forms and sections; derive metric and field overlap germs, signature preservation, actual C² manifold transition, and existence/uniqueness of the glued smooth covariant output with local C-infinity regularity hypotheses for input coordinate representatives. No output regularity or metric/field overlap hypothesis is needed by the new global theorem. Full intrinsic operator axioms and uniqueness among arbitrary connections remain separate obligations. All candidates await CI. Main unchanged. No Step 3D.
+
+## Intrinsic operator interface
+
+8 additional theorem candidates and 1 definition give a total of 309 audit targets. The pointwise globally defined operator is identified with any chart-compatible output section; direction additivity and function linearity, field additivity and Leibniz in actual chart representatives, and uniqueness of arbitrary locally LC coefficient arrays are derived. Full intrinsic global torsion/metric compatibility, comparison to manifold differential and Lie bracket, and uniqueness among arbitrary abstract global connections (rather than local LC coefficient representations) remain to be established. All additions are candidates until CI succeeds.
