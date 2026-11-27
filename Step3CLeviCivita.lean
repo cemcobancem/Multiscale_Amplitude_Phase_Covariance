@@ -263,9 +263,25 @@ theorem chart_intrinsic_point_lc_unique (G : Metric4)
     dsimp [A, D]
     simp only [map_sub, ContinuousLinearMap.sub_apply]
     have he := hp.symm.trans hq
-    linarith only [he]
+    have scalar_cancel (a b c d : ℝ) (h : a + b = c + d) :
+        a - c = -(b - d) := by
+      calc
+        a - c = (a + b) - (c + d) - (b - d) := by ring
+        _ = -(b - d) := by rw [h, sub_self, zero_sub]
+    exact scalar_cancel _ _ _ _ he
   have hz (X Y Z : Local4 p) : A X Y Z = 0 := by
-    linarith [ha X Y Z, hb Y X Z, ha Y Z X, hb Z Y X, ha Z X Y, hb X Z Y]
+    have hneg : A X Y Z = -A X Y Z := calc
+      A X Y Z = A Y X Z := ha X Y Z
+      _ = -A Y Z X := hb Y X Z
+      _ = -A Z Y X := congrArg Neg.neg (ha Y Z X)
+      _ = A Z X Y := by rw [hb Z Y X, neg_neg]
+      _ = A X Z Y := ha Z X Y
+      _ = -A X Y Z := hb X Z Y
+    have htwo : (2 : ℝ) * A X Y Z = 0 := calc
+      2 * A X Y Z = A X Y Z + A X Y Z := by ring
+      _ = A X Y Z + -A X Y Z := congrArg (fun t : ℝ => A X Y Z + t) hneg
+      _ = 0 := add_neg_cancel _
+    exact (mul_eq_zero.mp htwo).resolve_left (by norm_num)
   funext X Y
   have hzero : (D X Y : E4) = 0 := by
     apply chart_metric_bundle_nondegenerate
