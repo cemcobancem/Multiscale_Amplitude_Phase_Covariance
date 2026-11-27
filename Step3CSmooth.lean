@@ -130,7 +130,7 @@ theorem chart_smooth_transition_c2 {E F : Type*}
     [NormedAddCommGroup F] [NormedSpace ℝ F]
     (f : E → F) (x : E) (hf : ContDiffAt ℝ ∞ f x) :
     ContDiffAt ℝ 2 f x :=
-  hf.of_le (by simp)
+  hf.of_le (inferInstance : ENat.LEInfty (2 : WithTop ℕ∞)).out
 
 /-- The determinant inherits local regularity at any order. -/
 theorem chart_det_regular_at {d : Type*} [Fintype d] [DecidableEq d]

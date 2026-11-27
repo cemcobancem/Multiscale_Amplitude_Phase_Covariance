@@ -185,7 +185,7 @@ theorem chart_manifold_tangent_cocycle (a b c p : M) (v : E4)
       tangentCoordChange I4 a c p v :=
   tangentCoordChange_comp (I := I4) ⟨⟨ha, hb⟩, hc⟩
 
-/-- Actual smooth tangent-section descent from compatible local values. -/
+/- Actual smooth tangent-section descent from compatible local values. -/
 omit [IsManifold I4 (⊤ : WithTop ℕ∞) M] in
 theorem chart_manifold_smooth_glue (n : WithTop ℕ∞)
     (value : M → M → E4)
