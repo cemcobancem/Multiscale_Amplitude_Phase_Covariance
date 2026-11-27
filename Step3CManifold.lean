@@ -186,6 +186,7 @@ theorem chart_manifold_tangent_cocycle (a b c p : M) (v : E4)
   tangentCoordChange_comp (I := I4) ⟨⟨ha, hb⟩, hc⟩
 
 /-- Actual smooth tangent-section descent from compatible local values. -/
+omit [IsManifold I4 (⊤ : WithTop ℕ∞) M] in
 theorem chart_manifold_smooth_glue (n : WithTop ℕ∞)
     (value : M → M → E4)
     (overlap : ∀ a b p, p ∈ (extChartAt I4 a).source →

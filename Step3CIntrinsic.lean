@@ -31,8 +31,8 @@ theorem chart_manifold_transition_regular_c2 (a b p : M)
   have hb' : p ∈ (chartAt E4 b).source := by simpa only [extChartAt_source] using hb
   have h := OpenPartialHomeomorph.contDiffWithinAt_extend_coord_change'
     (I := I4) (n := (2 : WithTop ℕ∞))
-    (chart_mem_maximalAtlas (I := I4) b)
-    (chart_mem_maximalAtlas (I := I4) a) hb' ha'
+    (IsManifold.chart_mem_maximalAtlas (I := I4) (n := (2 : WithTop ℕ∞)) b)
+    (IsManifold.chart_mem_maximalAtlas (I := I4) (n := (2 : WithTop ℕ∞)) a) hb' ha'
   simpa [chartManifoldTransition, extChartAt, ModelWithCorners.range_eq_univ,
     contDiffWithinAt_univ] using h
 
@@ -236,7 +236,7 @@ theorem chart_intrinsic_global_section
             (fun z u v => chartConstructedCoefficients (chartIntrinsicComponents G a) z u v)
             (chartIntrinsicField X a) (extChartAt I4 a p)
             (tangentCoordChange I4 p a p (W p))) ∧
-      ContMDiff I4 I4.tangent ∞ (fun p => TotalSpace.mk' E4 p (S p)) := by
+      ContMDiff I4 (ModelWithCorners.prod I4 I4) ∞ (fun p => TotalSpace.mk' E4 p (S p)) := by
   let value : M → M → E4 := fun a p => chartCovariantDerivative
     (fun z u v => chartConstructedCoefficients (chartIntrinsicComponents G a) z u v)
     (chartIntrinsicField X a) (extChartAt I4 a p) (tangentCoordChange I4 p a p (W p))
