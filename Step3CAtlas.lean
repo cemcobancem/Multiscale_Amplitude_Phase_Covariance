@@ -36,10 +36,9 @@ theorem chart_metric_bundle_eval (g : Fin 4 → Fin 4 → ℝ) (u v : Fin 4 → 
 theorem chart_coefficient_bundle_basis (C : Fin 4 → Fin 4 → Fin 4 → ℝ)
     (i j : Fin 4) :
     chartCoefficientBundle C (Pi.single i (1 : ℝ)) (Pi.single j (1 : ℝ)) = C i j := by
-  funext l
+  classical
   simp [chartCoefficientBundle, ContinuousLinearMap.sum_apply,
-    ContinuousLinearMap.smul_apply, ContinuousLinearMap.smulRight_apply,
-    Pi.single_apply, Pi.smul_apply, Finset.sum_apply, smul_eq_mul]
+    ContinuousLinearMap.smulRight_apply, Pi.single_apply]
 
 theorem chart_metric_bundle_smooth
     (g : (Fin 4 → ℝ) → Fin 4 → Fin 4 → ℝ)
@@ -57,9 +56,14 @@ theorem chart_metric_bundle_differentiable_at
     (h : ∀ i j, DifferentiableAt ℝ (fun y => g y i j) x) :
     DifferentiableAt ℝ (fun y => chartMetricBundle (g y)) x := by
   unfold chartMetricBundle
-  apply DifferentiableAt.fun_sum
+  refine DifferentiableAt.fun_sum (u := Finset.univ) (A := fun i y =>
+    ∑ j : Fin 4, g y i j •
+      ((ContinuousLinearMap.proj (R := ℝ) i : (Fin 4 → ℝ) →L[ℝ] ℝ).smulRight
+        (ContinuousLinearMap.proj (R := ℝ) j : (Fin 4 → ℝ) →L[ℝ] ℝ))) ?_
   intro i hi
-  apply DifferentiableAt.fun_sum
+  refine DifferentiableAt.fun_sum (u := Finset.univ) (A := fun j y =>
+    g y i j • ((ContinuousLinearMap.proj (R := ℝ) i : (Fin 4 → ℝ) →L[ℝ] ℝ).smulRight
+      (ContinuousLinearMap.proj (R := ℝ) j : (Fin 4 → ℝ) →L[ℝ] ℝ))) ?_
   intro j hj
   exact (h i j).smul (differentiableAt_const _)
 
@@ -212,7 +216,8 @@ theorem chart_open_domain_directional_lift
     simpa [Matrix.mul_apply, Matrix.one_apply, coordinateMetricInverse] using he
   have hsym (k i j : Fin 4) : metricPartial g x k i j = metricPartial g x k j i := by
     have he : (fun y => g y i j) =ᶠ[𝓝 x] (fun y => g y j i) :=
-      (ho.mem_nhds hx).mono fun y hy => hs y hy i j
+      Filter.Eventually.mono (show ∀ᶠ y in 𝓝 x, y ∈ s from ho.mem_nhds hx)
+        (fun y hy => hs y hy i j)
     unfold metricPartial
     rw [he.fderiv_eq]
   apply chart_coordinate_lift_lc g x _ hd
