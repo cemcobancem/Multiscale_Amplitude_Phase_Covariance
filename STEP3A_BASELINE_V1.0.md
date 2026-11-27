@@ -1,11 +1,14 @@
 # Paper I — Step 3A v1.0 certified coordinate foundations
 
-**Status:** The mathematical checkpoint passed both Lean workflows on 27 November 2026. Consolidation preserves the exact certified modules; fresh integration CI and explicit owner approval remain required before merging [PR #18](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/pull/18). Step 3B is not started.
+**Status:** The mathematical checkpoint and both consolidation workflows passed. Owner-approved [PR #18](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/pull/18) was merged into main on 27 November 2026 using a regular merge. The exact mathematical modules are preserved. Fresh main verification is the final release-verification gate; see the linked run below. Step 3B is not started.
 
 ## Frozen source and dependency inventory
 
 - Certified mathematical commit: `998ba9d458368e983eec67dfe66226ff88e24009`.
 - Parent Step 2 main baseline: `5602165bc44d2cb75691c6326549f38f7219ee96`.
+- Approved consolidation commit: `c9c12e946c7a5719a2d8d2b1092164d7bdaada24`.
+- Official mathematical baseline merge: `74579c4d78c6adc37a507e20b111ef279056be20` (regular merge with both parent histories retained).
+- Exact verified integration and merge tree: `c54f012427673cb753cd686c688d3670fb89feb2`.
 - Covariance.lean Git blob: `8481ef5c36f41b016b9fe5d99c9747fea0cbb71e` (146 theorems, 28 definitions).
 - Step3A.lean Git blob: `c3ff5a4b4a4f23ee79bfa2342a68d35780fae98e` (16 theorems, 8 definitions).
 - Total: 162 theorems, 36 definitions, 198 unique audited declarations.
@@ -41,7 +44,17 @@ Both logs record a successful 7354-job build and a successful audit of all 162 t
 
 Initial runs 45957055683 and 45957070228 failed on four elaboration obligations. The corrected commit preserves all intended statements (one explicit coordinate-vector type annotation); both corrected runs passed. No further mathematical code is changed during consolidation.
 
-## Reproduce and approve
+## Consolidation and main verification evidence
+
+| Workflow | Run | Result | Artifact |
+|---|---|---|---|
+| Consolidation push | [45963972578](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45963972578) | Passed, 198/198 | [15182412574](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45963972578/artifacts/15182412574) |
+| Consolidation PR | [45963979722](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45963979722) | Passed, 198/198 | [15181738297](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45963979722/artifacts/15181738297) |
+| Post-merge main | [45968623539](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45968623539) | Consult run for final result | See run |
+
+The two consolidation runs independently matched all 198 expanded ledger rows and all 174 original ledger rows. Artifact SHA-256 digests respectively: `08e1841b398da752b52ae887d2b2843c4bc0e22f3b612f2ea928cfc7d4ee6aa3` and `840d90d739649d888562587e81dddef2b0dae29d334893fb234c8636d526918d`. Both mathematical modules, both ledgers, the toolchain, and the entire verified integration tree are unchanged at the official merge. The raw integration artifacts expire in February 2027.
+
+## Reproduce
 
 ```sh
 lake update
@@ -51,4 +64,4 @@ lake env lean Covariance.lean
 lake env lean Step3A.lean
 ```
 
-Consolidation CI checks the two frozen module blob IDs, exact complete inventory, original Step 2 ledger and exact expanded ledger dependency sets, plus the standard axiom whitelist. Both fresh integration runs must pass. Retain PR #18 as draft until owner approval, use a regular merge preserving history, and reverify main after any approved merge. Do not start Step 3B.
+Consolidation CI checks the two frozen module blob IDs, exact complete inventory, original Step 2 ledger and exact expanded ledger dependency sets, plus the standard axiom whitelist. Both fresh integration runs passed; owner approval was received and PR #18 was merged regularly. Final release verification additionally requires successful post-merge main CI. Proposed milestone tag: `paper-i-step3a-v1.0`, targeting the official mathematical merge commit above after successful main CI. The available GitHub interface does not expose tag creation. Lake package version remains 0.2.0, distinct from the milestone. Step 3B is not started.

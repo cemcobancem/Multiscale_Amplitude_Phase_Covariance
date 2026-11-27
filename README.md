@@ -7,4 +7,4 @@ See [Step 2 v1.0 baseline](STEP2_BASELINE_V1.0.md) and the [174-declaration audi
 
 ## Paper I — Step 3A verified coordinate foundations
 
-The 198-declaration checkpoint passed both corrected Lean workflows. See [Step 3A v1.0 baseline](STEP3A_BASELINE_V1.0.md) and [expanded dependency ledger](STEP3A_AXIOM_AUDIT.tsv). PR #18 is a consolidation draft pending fresh CI and owner approval. The Step 2 source is frozen, and Step 3B is not started.
+The 198-declaration checkpoint passed both corrected Lean workflows. See [Step 3A v1.0 baseline](STEP3A_BASELINE_V1.0.md) and [expanded dependency ledger](STEP3A_AXIOM_AUDIT.tsv). Both consolidation runs passed and owner-approved PR #18 was merged into main. See the baseline for fresh main verification evidence. The Step 2 source is frozen, and Step 3B is not started.
