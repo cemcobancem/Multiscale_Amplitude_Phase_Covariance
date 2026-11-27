@@ -40,18 +40,19 @@ jobs:
           lake env lean Step3A.lean | tee -a axiom-audit.log
           lake env lean Step3B.lean | tee -a axiom-audit.log
           lake env lean Step3C.lean | tee -a axiom-audit.log
+          lake env lean Step3CAtlas.lean | tee -a axiom-audit.log
           python3 - <<'PY'
           import re
           from pathlib import Path
-          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text() + "\n" + Path("Step3C.lean").read_text()
+          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text() + "\n" + Path("Step3C.lean").read_text() + "\n" + Path("Step3CAtlas.lean").read_text()
           out = Path("axiom-audit.log").read_text()
           names = re.findall(r"^#print axioms (MicroMacro\.\w+)$", source, re.M)
           theorems = re.findall(r"^theorem (\w+)", source, re.M)
           definitions = re.findall(r"^(?:noncomputable )?def (\w+)", source, re.M)
           declarations = theorems + definitions
-          assert len(theorems) == 195
-          assert len(definitions) == 44
-          assert len(declarations) == 239
+          assert len(theorems) == 208
+          assert len(definitions) == 47
+          assert len(declarations) == 255
           assert len(names) == len(declarations)
           assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)
