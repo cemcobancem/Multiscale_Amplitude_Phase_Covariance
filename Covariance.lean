@@ -2376,6 +2376,276 @@ theorem polar_component_fderiv {V : Type*}
   rw [he.fderiv]
   rfl
 
+
+/-- Connect the actual polar derivative with a finite Hilbert multiplet
+by differentiating the coordinate projection of that multiplet. -/
+theorem multiplet_polar_derivative {ι V : Type*} [Fintype ι]
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    (n : V → EuclideanSpace ℂ ι) (r theta : ι → V → ℝ)
+    (dr dt : ι → V →L[ℝ] ℝ) (x u : V) (i : ι)
+    (hn : DifferentiableAt ℝ n x)
+    (hr : HasFDerivAt (r i) (dr i) x)
+    (ht : HasFDerivAt (theta i) (dt i) x)
+    (hpos : 0 < r i x)
+    (hpolar : ∀ y, n y i = Complex.exp
+      (((1/2:ℝ)*Real.log (r i y):ℝ) + Complex.I*(theta i y:ℂ))) :
+    fderiv ℝ n x u i = n x i*
+      ⟨(1/2)*((r i x)⁻¹*dr i u),dt i u⟩ := by
+  let P : EuclideanSpace ℂ ι →L[ℝ] ℂ := PiLp.proj 2 (fun _ : ι => ℂ) i
+  have hd : HasFDerivAt (fun y => n y i)
+      (P.comp (fderiv ℝ n x)) x := P.hasFDerivAt.comp x hn.hasFDerivAt
+  have he : (fun y => n y i) = fun y => Complex.exp
+      (((1/2:ℝ)*Real.log (r i y):ℝ) + Complex.I*(theta i y:ℂ)) :=
+    funext hpolar
+  have hcoord : fderiv ℝ (fun y => n y i) x u = fderiv ℝ n x u i := by
+    rw [hd.fderiv]
+    rfl
+  rw [← hcoord, he, polar_component_fderiv (r i) (theta i) (dr i) (dt i) x u hr ht hpos,
+    ← hpolar x]
+  congr 1
+  apply Complex.ext <;> simp [Complex.mul_re, Complex.mul_im]
+
+/-- End-to-end real and imaginary covariance identity for actual
+differentiable positive polar components of a normalized finite
+multiplet. No logarithmic slope hypotheses are supplied. q is
+the physical weight, Q times the squared component modulus. -/
+theorem projective_polar_covariance {ι V : Type*} [Fintype ι]
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    (n : V → EuclideanSpace ℂ ι) (r theta : ι → V → ℝ)
+    (dr dt : ι → V →L[ℝ] ℝ) (x u v : V) (Q : ℝ)
+    (hn : DifferentiableAt ℝ n x)
+    (hunit : ∀ y, inner ℂ (n y) (n y) = 1)
+    (hr : ∀ i, HasFDerivAt (r i) (dr i) x)
+    (ht : ∀ i, HasFDerivAt (theta i) (dt i) x)
+    (hpos : ∀ i, 0 < r i x)
+    (hpolar : ∀ i y, n y i = Complex.exp
+      (((1/2:ℝ)*Real.log (r i y):ℝ) + Complex.I*(theta i y:ℂ))) :
+    let a := fun i => (1/2)*((r i x)⁻¹*dr i u)
+    let c := fun i => (1/2)*((r i x)⁻¹*dr i v)
+    let b := fun i => dt i u
+    let d := fun i => dt i v
+    let w := fun i => (n x i).re^2+(n x i).im^2
+    let B := ∑ i, w i*b i
+    let D := ∑ i, w i*d i
+    Q*(projectiveTensor n x u v).re =
+      ∑ i, (Q*w i)*(a i*c i+(b i-B)*(d i-D)) ∧
+    Q*(projectiveTensor n x u v).im =
+      ∑ i, (Q*w i)*(a i*(d i-D)-(b i-B)*c i) := by
+  dsimp
+  exact projective_tensor_normalized_covariance n x u v
+    (fun i => Q*((n x i).re^2+(n x i).im^2))
+    (fun i => (1/2)*((r i x)⁻¹*dr i u)) (fun i => dt i u)
+    (fun i => (1/2)*((r i x)⁻¹*dr i v)) (fun i => dt i v) Q hn hunit
+    (fun i => multiplet_polar_derivative n r theta dr dt x u i hn
+      (hr i) (ht i) (hpos i) (hpolar i))
+    (fun i => multiplet_polar_derivative n r theta dr dt x v i hn
+      (hr i) (ht i) (hpos i) (hpolar i)) (fun _ => rfl)
+
+/-- Projection onto the kernel of a nonzero chart functional along
+a chosen affine origin b with ell(b)=1. -/
+noncomputable def projectiveKernelProjection {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1) : E →L[ℂ] ell.ker :=
+  ((ContinuousLinearMap.id ℂ E)-ell.smulRight b).codRestrict ell.ker (by
+    intro z
+    change ell (z-ell z • b) = 0
+    simp [map_sub, map_smul, hb])
+
+theorem projective_kernel_projection_apply {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1) (z : E) :
+    (projectiveKernelProjection ell b hb z : E) = z-ell z • b := rfl
+
+/-- The affine hyperplane has constant origin plus a linear kernel
+coordinate, so it is homeomorphic to any chosen linear model. -/
+noncomputable def projectiveHyperplaneModel {E H : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
+    (e : ell.ker ≃L[ℂ] H) : {v : E // ell v = 1} ≃ₜ H where
+  toFun v := e (projectiveKernelProjection ell b hb v.val)
+  invFun x := ⟨b+(e.symm x : E), by
+    have h : ell (e.symm x : E) = 0 := (e.symm x).property
+    rw [map_add,hb,h,add_zero]⟩
+  left_inv v := by
+    apply Subtype.ext
+    change b+(e.symm (e (projectiveKernelProjection ell b hb v.val)) : E) = v.val
+    rw [e.symm_apply_apply, projective_kernel_projection_apply,v.property,one_smul]
+    abel
+  right_inv x := by
+    change e (projectiveKernelProjection ell b hb (b+(e.symm x : E))) = x
+    rw [← e.apply_symm_apply x]
+    apply congrArg e
+    apply Subtype.ext
+    rw [projective_kernel_projection_apply]
+    have h : ell (e.symm x : E) = 0 := (e.symm x).property
+    rw [map_add,hb,h,add_zero,one_smul]
+    abel
+  continuous_toFun := e.continuous.comp
+    ((projectiveKernelProjection ell b hb).continuous.comp continuous_subtype_val)
+  continuous_invFun := (continuous_const.add
+    (continuous_subtype_val.comp e.symm.continuous)).subtype_mk _
+
+
+/-- An actual open partial homeomorphism from a ray chart to a fixed
+normed complex model. No topology or smoothness of the ray space is
+assumed: the quotient topology has already been constructed. -/
+noncomputable def projectiveModelChart {E H : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
+    (e : ell.ker ≃L[ℂ] H) :
+    OpenPartialHomeomorph (Projectivization ℂ E) H where
+  toFun p := e (projectiveKernelProjection ell b hb (projectiveAffineRep ell p))
+  invFun x := ((projectiveAffineHomeomorph ell).symm
+    ((projectiveHyperplaneModel ell b hb e).symm x)).val
+  source := {p | ell p.rep ≠ 0}
+  target := Set.univ
+  map_source' := by intros; exact Set.mem_univ _
+  map_target' := by
+    intro x hx
+    exact ((projectiveAffineHomeomorph ell).symm
+      ((projectiveHyperplaneModel ell b hb e).symm x)).property
+  left_inv' := by
+    intro p hp
+    have he := ((projectiveAffineHomeomorph ell).trans
+      (projectiveHyperplaneModel ell b hb e)).symm_apply_apply ⟨p,hp⟩
+    exact congrArg Subtype.val he
+  right_inv' := by
+    intro x hx
+    exact ((projectiveAffineHomeomorph ell).trans
+      (projectiveHyperplaneModel ell b hb e)).apply_symm_apply x
+  open_source := projective_chart_domain_open ell
+  open_target := isOpen_univ
+  continuousOn_toFun := e.continuous.comp_continuousOn
+    ((projectiveKernelProjection ell b hb).continuous.comp_continuousOn
+      (projective_affine_rep_continuousOn ell))
+  continuousOn_invFun := (continuous_subtype_val.comp
+    ((projectiveAffineHomeomorph ell).symm.continuous.comp
+      (projectiveHyperplaneModel ell b hb e).symm.continuous)).continuousOn
+
+theorem projective_model_chart_inverse {E H : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
+    (e : ell.ker ≃L[ℂ] H) (x : H) :
+    (projectiveModelChart ell b hb e).symm x =
+      Projectivization.mk ℂ (b+(e.symm x : E)) (by
+        intro hz
+        have h : ell (e.symm x : E) = 0 := (e.symm x).property
+        have he : ell (b+(e.symm x : E)) = 1 := by rw [map_add,hb,h,add_zero]
+        simp [hz] at he) := rfl
+
+/-- All chart transitions are smooth on their exact overlap. -/
+theorem projective_model_chart_transition {E H : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H]
+    (ell ell' : E →L[ℂ] ℂ) (b b' : E)
+    (hb : ell b = 1) (hb' : ell' b' = 1)
+    (e : ell.ker ≃L[ℂ] H) (e' : ell'.ker ≃L[ℂ] H)
+    (k : WithTop ℕ∞) :
+    ContDiffOn ℂ k
+      ((projectiveModelChart ell b hb e).symm.trans
+        (projectiveModelChart ell' b' hb' e'))
+      ((projectiveModelChart ell b hb e).symm.trans
+        (projectiveModelChart ell' b' hb' e')).source := by
+  let S := ((projectiveModelChart ell b hb e).symm.trans
+    (projectiveModelChart ell' b' hb' e')).source
+  let f : H → E := fun x => b+(e.symm x : E)
+  have hf : ContDiff ℂ k f := by
+    change ContDiff ℂ k (fun x => b+ell.ker.subtypeL (e.symm x))
+    exact contDiff_const.add (ell.ker.subtypeL.contDiff.comp e.symm.contDiff)
+  have hm : Set.MapsTo f S {z : E | ell' z ≠ 0} := by
+    intro x hx
+    have hx' : (projectiveModelChart ell b hb e).symm x ∈
+        (projectiveModelChart ell' b' hb' e').source := by
+      exact hx.2
+    rw [projective_model_chart_inverse] at hx'
+    exact (projective_chart_nonvanishing_mk ell' _ _).mp hx'
+  have ha : ContDiffOn ℂ k (fun x => affineRayRep ell' (f x)) S :=
+    ((projective_affine_transition_smooth ell').of_le le_top).comp
+      hf.contDiffOn hm
+  have h := e'.contDiff.comp_contDiffOn
+    ((projectiveKernelProjection ell' b' hb').contDiff.comp_contDiffOn ha)
+  apply h.congr
+  intro x hx
+  change e' (projectiveKernelProjection ell' b' hb'
+    (projectiveAffineRep ell' ((projectiveModelChart ell b hb e).symm x))) = _
+  rw [projective_model_chart_inverse,projective_affine_rep_mk]
+  rfl
+
+/-- Rank-nullity identifies the dimension of every chart kernel with
+the same model dimension, without assuming a charted space. -/
+theorem projective_kernel_finrank {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E] [FiniteDimensional ℂ E]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1) :
+    Module.finrank ℂ ell.ker = Module.finrank ℂ E-1 := by
+  have hs : Function.Surjective (ell : E →ₗ[ℂ] ℂ) := by
+    intro c
+    refine ⟨c • b, ?_⟩
+    change ell (c • b) = c
+    simp [map_smul,hb]
+  have h := LinearMap.finrank_range_add_finrank_ker (ell : E →ₗ[ℂ] ℂ)
+  rw [LinearMap.range_eq_top.mpr hs,Submodule.finrank_top,Module.finrank_self] at h
+  change 1+Module.finrank ℂ ell.ker = Module.finrank ℂ E at h
+  omega
+
+/-- The fixed finite-dimensional complex model for all ray charts. -/
+noncomputable def projectiveModelEquiv {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E] [FiniteDimensional ℂ E]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1) :
+    ell.ker ≃L[ℂ] (Fin (Module.finrank ℂ E-1) → ℂ) :=
+  ContinuousLinearEquiv.ofFinrankEq (by
+    rw [projective_kernel_finrank ell b hb]
+    simp [Module.finrank_fin_fun])
+
+/-- Preferred chart functional is nonzero on its ray representative. -/
+theorem projective_preferred_functional_ne_zero {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E]
+    (p : Projectivization ℂ E) :
+    innerSL ℂ p.rep p.rep ≠ 0 :=
+  (inner_self_ne_zero (𝕜 := ℂ)).2 p.rep_nonzero
+
+/-- A global family of charts with common finite-dimensional model. -/
+noncomputable def projectivePreferredChart {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E]
+    (p : Projectivization ℂ E) :
+    OpenPartialHomeomorph (Projectivization ℂ E)
+      (Fin (Module.finrank ℂ E-1) → ℂ) :=
+  let ell := innerSL ℂ p.rep
+  let b := affineRayRep ell p.rep
+  let hb := affine_rep_hyperplane ell p.rep (projective_preferred_functional_ne_zero p)
+  projectiveModelChart ell b hb (projectiveModelEquiv ell b hb)
+
+/-- Actual bundled charted space on the algebraic projective quotient.
+The model is C^(dim E - 1). The preferred charts cover all rays. -/
+noncomputable def projectiveChartedSpace {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E] :
+    ChartedSpace (Fin (Module.finrank ℂ E-1) → ℂ) (Projectivization ℂ E) where
+  atlas := Set.range (projectivePreferredChart (E := E))
+  chartAt := projectivePreferredChart
+  mem_chart_source p := projective_preferred_functional_ne_zero p
+  chart_mem_atlas p := ⟨p,rfl⟩
+
+attribute [local instance] projectiveChartedSpace
+
+/-- Bundled global smooth complex-projective manifold construction,
+using actual quotient topology and the explicit chart transitions. -/
+theorem projective_isManifold {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [FiniteDimensional ℂ E] :
+    IsManifold (modelWithCornersSelf ℂ (Fin (Module.finrank ℂ E-1) → ℂ))
+      (⊤ : WithTop ℕ∞) (Projectivization ℂ E) := by
+  apply isManifold_of_contDiffOn
+  intro e e' he he'
+  change e ∈ Set.range (projectivePreferredChart (E := E)) at he
+  change e' ∈ Set.range (projectivePreferredChart (E := E)) at he'
+  obtain ⟨p,rfl⟩ := he
+  obtain ⟨p',rfl⟩ := he'
+  simp only [modelWithCornersSelf_coe,modelWithCornersSelf_coe_symm,
+    Function.id_comp,Function.comp_id,Set.preimage_id,Set.range_id,Set.inter_univ]
+  unfold projectivePreferredChart
+  exact projective_model_chart_transition _ _ _ _ _ _ _ _ _
+
 end MicroMacro
 
 #print axioms MicroMacro.centered_shift
@@ -2512,3 +2782,17 @@ end MicroMacro
 #print axioms MicroMacro.projectiveRayTopology
 #print axioms MicroMacro.projectiveAffineHomeomorph
 #print axioms MicroMacro.rayNormalize
+#print axioms MicroMacro.multiplet_polar_derivative
+#print axioms MicroMacro.projective_polar_covariance
+#print axioms MicroMacro.projective_kernel_projection_apply
+#print axioms MicroMacro.projective_model_chart_inverse
+#print axioms MicroMacro.projective_model_chart_transition
+#print axioms MicroMacro.projective_kernel_finrank
+#print axioms MicroMacro.projective_preferred_functional_ne_zero
+#print axioms MicroMacro.projective_isManifold
+#print axioms MicroMacro.projectiveKernelProjection
+#print axioms MicroMacro.projectiveHyperplaneModel
+#print axioms MicroMacro.projectiveModelChart
+#print axioms MicroMacro.projectiveModelEquiv
+#print axioms MicroMacro.projectivePreferredChart
+#print axioms MicroMacro.projectiveChartedSpace
