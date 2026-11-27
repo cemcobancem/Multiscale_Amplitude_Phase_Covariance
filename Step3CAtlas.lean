@@ -56,12 +56,12 @@ theorem chart_metric_bundle_differentiable_at
     (h : ∀ i j, DifferentiableAt ℝ (fun y => g y i j) x) :
     DifferentiableAt ℝ (fun y => chartMetricBundle (g y)) x := by
   unfold chartMetricBundle
-  refine DifferentiableAt.fun_sum (u := Finset.univ) (A := fun i y =>
+  refine DifferentiableAt.fun_sum (𝕜 := ℝ) (u := Finset.univ) (A := fun i y =>
     ∑ j : Fin 4, g y i j •
       ((ContinuousLinearMap.proj (R := ℝ) i : (Fin 4 → ℝ) →L[ℝ] ℝ).smulRight
         (ContinuousLinearMap.proj (R := ℝ) j : (Fin 4 → ℝ) →L[ℝ] ℝ))) ?_
   intro i hi
-  refine DifferentiableAt.fun_sum (u := Finset.univ) (A := fun j y =>
+  refine DifferentiableAt.fun_sum (𝕜 := ℝ) (u := Finset.univ) (A := fun j y =>
     g y i j • ((ContinuousLinearMap.proj (R := ℝ) i : (Fin 4 → ℝ) →L[ℝ] ℝ).smulRight
       (ContinuousLinearMap.proj (R := ℝ) j : (Fin 4 → ℝ) →L[ℝ] ℝ))) ?_
   intro j hj
