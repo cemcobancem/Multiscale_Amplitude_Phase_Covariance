@@ -17,7 +17,9 @@ local notation "I4" => 𝓘(ℝ, E4)
 section Manifold
 variable {M : Type*} [TopologicalSpace M] [ChartedSpace E4 M]
   [IsManifold I4 2 M] [IsManifold I4 1 M]
+set_option quotPrecheck false in
 local notation "Field4" => (∀ p : M, TangentSpace I4 p)
+set_option quotPrecheck false in
 local notation "Metric4" => (∀ p : M, TangentSpace I4 p →L[ℝ] TangentSpace I4 p →L[ℝ] ℝ)
 local notation "Local4" p => { X : Field4 //
   DifferentiableAt ℝ (chartIntrinsicField X p) (extChartAt I4 p p) }
