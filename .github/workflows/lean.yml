@@ -1,7 +1,7 @@
 name: Lean proof check
 on:
   push:
-    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation, paper-i-step2-projective-geometry, paper-i-step2-projective-charts, paper-i-step2-zero-safe-atlas, paper-i-step2-manifold-polar, paper-i-step2-global-tensor, paper-i-step2-tangent-field, paper-i-step2-consolidation-v1.0]
+    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation, paper-i-step2-projective-geometry, paper-i-step2-projective-charts, paper-i-step2-zero-safe-atlas, paper-i-step2-manifold-polar, paper-i-step2-global-tensor, paper-i-step2-tangent-field, paper-i-step2-consolidation-v1.0, paper-i-step3-lorentzian-foundations]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -30,19 +30,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git hash-object Covariance.lean)" = 8481ef5c36f41b016b9fe5d99c9747fea0cbb71e
           lake env lean Covariance.lean | tee axiom-audit.log
+          lake env lean Step3A.lean | tee -a axiom-audit.log
           python3 - <<'PY'
           import re
           from pathlib import Path
-          source = Path("Covariance.lean").read_text()
+          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text()
           out = Path("axiom-audit.log").read_text()
           names = re.findall(r"^#print axioms (MicroMacro\.\w+)$", source, re.M)
           theorems = re.findall(r"^theorem (\w+)", source, re.M)
           definitions = re.findall(r"^(?:noncomputable )?def (\w+)", source, re.M)
           declarations = theorems + definitions
-          assert len(theorems) == 146
-          assert len(definitions) == 28
-          assert len(declarations) == 174
+          assert len(theorems) == 162
+          assert len(definitions) == 36
+          assert len(declarations) == 198
           assert len(names) == len(declarations)
           assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)
@@ -54,6 +56,15 @@ jobs:
                   assert deps <= allowed, (name, deps - allowed)
               else:
                   assert "'" + name + "' does not depend on any axioms" in out, name
+          import csv
+          with Path("STEP2_AXIOM_AUDIT.tsv").open() as f:
+              baseline = list(csv.reader(f, delimiter="\t"))[1:]
+          assert len(baseline) == 174
+          for name, kind, push, pr in baseline:
+              match = re.search(r"\x27" + re.escape(name) + r"\x27 depends on axioms: \[([^\]]*)\]", out)
+              assert match, name
+              actual = ";".join(sorted(x.strip() for x in match.group(1).split(",")))
+              assert actual == push == pr, name
           assert "sorryAx" not in out
           print("Axiom audit passed for all", len(theorems), "theorems and", len(definitions), "definitions")
           PY

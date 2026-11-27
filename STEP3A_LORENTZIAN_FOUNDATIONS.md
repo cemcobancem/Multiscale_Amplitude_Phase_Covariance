@@ -1,0 +1,9 @@
+# Step 3A — Lorentzian coordinate foundations
+
+Candidate extension of certified Step 2 commit `5602165bc44d2cb75691c6326549f38f7219ee96`. The entire original Covariance.lean is frozen (blob 8481ef5c36f41b016b9fe5d99c9747fea0cbb71e). Main is untouched, Lean 4.24.0 and Mathlib v4.24.0 remain unchanged.
+
+The new Step3A.lean module defines a smooth symmetric metric and inverse matrix on the four-dimensional real model space, signature by congruence to Minkowski, actual partial derivatives via fderiv, Christoffel coefficients, and metric compatibility and torsion-free identities. It uses the prior inverse_metric_contraction, tensorConnection and local_metric_stress_on_shell results. Minkowski is an explicit witness of the metric data and zero Cartesian connection. No custom axiom or admitted proof is intended. There are 16 new theorem candidates and 8 new named definitions; expanded audit targets 198 declarations.
+
+Scope: inverse smoothness and the Lorentzian frame are explicit metric-data hypotheses; no global manifold, coordinate transformation law, intrinsic connection, or existence/uniqueness theorem for Levi-Civita is claimed. The model domain is all R^4 at this checkpoint. The stress theorem remains a jet identity with explicit Hessian symmetry and on-shell trace assumptions; composition with actual scalar fields and global conservation are later phases. No physical unification or new physics is asserted. This is a candidate until Lean CI and all declaration dependencies pass. Do not start Step 3B before this checkpoint is verified.
+
+Reproduce: lake update; lake exe cache get; lake build; lake env lean Covariance.lean; lake env lean Step3A.lean. CI checks the frozen source blob, all declarations, permitted axioms, and exact agreement of all original 174 dependencies with their permanent ledger.
