@@ -3100,8 +3100,8 @@ theorem projective_global_tensor_chartwise_smooth {E : Type*}
         (Fin (Module.finrank ℂ E-1) → ℂ) × (Fin (Module.finrank ℂ E-1) → ℂ) =>
         let q := (projectivePreferredChart p).symm a.1
         projectiveGlobalTensor q
-          (tangentCoordChange (modelWithCornersSelf ℂ _) p q q a.2.1)
-          (tangentCoordChange (modelWithCornersSelf ℂ _) p q q a.2.2)) =
+          (tangentCoordChange (modelWithCornersSelf ℂ (Fin (Module.finrank ℂ E-1) → ℂ)) p q q a.2.1)
+          (tangentCoordChange (modelWithCornersSelf ℂ (Fin (Module.finrank ℂ E-1) → ℂ)) p q q a.2.2)) =
       fun a => projectiveTensor (projectivePreferredLift p) a.1 a.2.1 a.2.2 := by
     funext a
     dsimp only
