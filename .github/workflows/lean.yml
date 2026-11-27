@@ -36,6 +36,11 @@ jobs:
           test "$(git hash-object STEP2_AXIOM_AUDIT.tsv)" = 039482d1eaae0d6291a31bc582f3b20dafda11cb
           test "$(git hash-object STEP3A_AXIOM_AUDIT.tsv)" = bb169a74488b7b0c92621c2b95657d6a9e08074d
           test "$(git hash-object STEP3B_AXIOM_AUDIT.tsv)" = 8b22fb8748dcd7961442873bd93a6cdf62ac4aa1
+          test "$(git hash-object Step3C.lean)" = 25b402a6b02162e40eb0be70c58259c8327d7822
+          test "$(git hash-object Step3CAtlas.lean)" = 7064bd7cd8094e191a6a710e16c3b0fbb930a340
+          test "$(git hash-object Step3CManifold.lean)" = 4121d3efe10ccb38f62e8f20f008bc505ebfa006
+          test "$(git hash-object Step3CSmooth.lean)" = 62085d8fb1b7ddc790d45db32426d6da6868b50c
+          test "$(git hash-object Step3CIntrinsic.lean)" = 31b3505564fbba2a52d77e9d64e453a70103ee96
           lake env lean Covariance.lean | tee axiom-audit.log
           lake env lean Step3A.lean | tee -a axiom-audit.log
           lake env lean Step3B.lean | tee -a axiom-audit.log
@@ -44,18 +49,19 @@ jobs:
           lake env lean Step3CManifold.lean | tee -a axiom-audit.log
           lake env lean Step3CSmooth.lean | tee -a axiom-audit.log
           lake env lean Step3CIntrinsic.lean | tee -a axiom-audit.log
+          lake env lean Step3CLeviCivita.lean | tee -a axiom-audit.log
           python3 - <<'PY'
           import re
           from pathlib import Path
-          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text() + "\n" + Path("Step3C.lean").read_text() + "\n" + Path("Step3CAtlas.lean").read_text() + "\n" + Path("Step3CManifold.lean").read_text() + "\n" + Path("Step3CSmooth.lean").read_text() + "\n" + Path("Step3CIntrinsic.lean").read_text()
+          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text() + "\n" + Path("Step3C.lean").read_text() + "\n" + Path("Step3CAtlas.lean").read_text() + "\n" + Path("Step3CManifold.lean").read_text() + "\n" + Path("Step3CSmooth.lean").read_text() + "\n" + Path("Step3CIntrinsic.lean").read_text() + "\n" + Path("Step3CLeviCivita.lean").read_text()
           out = Path("axiom-audit.log").read_text()
           names = re.findall(r"^#print axioms (MicroMacro\.\w+)$", source, re.M)
           theorems = re.findall(r"^theorem (\w+)", source, re.M)
           definitions = re.findall(r"^(?:noncomputable )?def (\w+)", source, re.M)
           declarations = theorems + definitions
-          assert len(theorems) == 255
-          assert len(definitions) == 54
-          assert len(declarations) == 309
+          assert len(theorems) == 268
+          assert len(definitions) == 55
+          assert len(declarations) == 323
           assert len(names) == len(declarations)
           assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)
@@ -120,6 +126,18 @@ jobs:
                   actual = ";".join(sorted(x.strip() for x in report.split(",") if x.strip()))
                   assert actual == push == pr, name
           print("Step 3B permanent ledger matched for all 217 declarations")
+          with Path("STEP3C_309_AXIOM_AUDIT.tsv").open() as f:
+              checkpoint = list(csv.reader(f, delimiter="\t"))[1:]
+          assert len(checkpoint) == 309
+          assert len({r[0] for r in checkpoint}) == 309
+          assert {r[0] for r in checkpoint} == set(re.findall(r"^#print axioms (MicroMacro\.\w+)$", "\n".join(Path(p).read_text() for p in ["Covariance.lean","Step3A.lean","Step3B.lean","Step3C.lean","Step3CAtlas.lean","Step3CManifold.lean","Step3CSmooth.lean","Step3CIntrinsic.lean"]), re.M))
+          for name, kind, module, push, pr in checkpoint:
+              reports = [r for n, r in all_reports if n == name]
+              assert reports, name
+              for report in reports:
+                  assert ";".join(sorted(x.strip() for x in report.split(",") if x.strip())) == push == pr, name
+          assert all({n: (k, mod, p, q) for n, k, mod, p, q in checkpoint}[n] == v for n, v in current.items())
+          print("Step 3C 309-declaration checkpoint ledger matched")
           assert "sorryAx" not in out
           print("Axiom audit passed for all", len(theorems), "theorems and", len(definitions), "definitions")
           PY
