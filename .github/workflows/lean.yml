@@ -31,6 +31,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git hash-object Covariance.lean)" = 8481ef5c36f41b016b9fe5d99c9747fea0cbb71e
+          test "$(git hash-object Step3A.lean)" = c3ff5a4b4a4f23ee79bfa2342a68d35780fae98e
+          test "$(git hash-object STEP2_AXIOM_AUDIT.tsv)" = 039482d1eaae0d6291a31bc582f3b20dafda11cb
           lake env lean Covariance.lean | tee axiom-audit.log
           lake env lean Step3A.lean | tee -a axiom-audit.log
           python3 - <<'PY'
@@ -65,6 +67,24 @@ jobs:
               assert match, name
               actual = ";".join(sorted(x.strip() for x in match.group(1).split(",")))
               assert actual == push == pr, name
+          with Path("STEP3A_AXIOM_AUDIT.tsv").open() as f:
+              expanded = list(csv.reader(f, delimiter="\t"))[1:]
+          assert len(expanded) == 198
+          assert len({row[0] for row in expanded}) == 198
+          assert {row[0] for row in expanded} == set(names)
+          for module in ("Covariance.lean", "Step3A.lean"):
+              module_source = Path(module).read_text()
+              module_th = {"MicroMacro." + n for n in re.findall(r"^theorem (\w+)", module_source, re.M)}
+              module_def = {"MicroMacro." + n for n in re.findall(r"^(?:noncomputable )?def (\w+)", module_source, re.M)}
+              assert {(n, k) for n, k, mod, p, q in expanded if mod == module} == (
+                  {(n, "theorem") for n in module_th} | {(n, "definition") for n in module_def})
+          for name, kind, module, push, pr in expanded:
+              reports = re.findall(r"'" + re.escape(name) + r"' depends on axioms: \[([^\]]*)\]", out)
+              assert reports, name
+              for report in reports:
+                  actual = ";".join(sorted(x.strip() for x in report.split(",") if x.strip()))
+                  assert actual == push == pr, name
+          print("Expanded permanent ledger matched for all 198 declarations")
           assert "sorryAx" not in out
           print("Axiom audit passed for all", len(theorems), "theorems and", len(definitions), "definitions")
           PY

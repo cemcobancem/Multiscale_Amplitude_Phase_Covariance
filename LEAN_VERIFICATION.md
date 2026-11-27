@@ -1,6 +1,10 @@
 # Paper I — Lean verification
 
-## Current Step 2 checkpoint
+## Step 3A certified mathematical checkpoint
+
+See [Step 3A v1.0](STEP3A_BASELINE_V1.0.md): 162 theorems and 36 definitions passed both corrected runs, with full Step 2 regression. The [198-declaration ledger](STEP3A_AXIOM_AUDIT.tsv) records exact dependencies. Consolidation CI and owner approval are separate.
+
+## Step 2 checkpoint
 
 See [Step 2 v1.0 baseline](STEP2_BASELINE_V1.0.md) for the frozen source, reproducibility details and both successful 174-declaration audits. [Declaration-level dependencies](STEP2_AXIOM_AUDIT.tsv) are preserved in version control. Both integration audits passed and PR #17 was merged with owner approval. The baseline document links the fresh main verification run.
 
