@@ -1,0 +1,3 @@
+# Global tangent-fiber tensor extension
+
+Adds 6 theorem candidates and 3 definitions to the 165-declaration branch. Defines a real-bilinear complex-valued tensor on actual Mathlib TangentSpace fibers, establishes preferred-chart coordinate agreement through tangentCoordChange, and proves joint chartwise smoothness of the global tensor. This is the chartwise smooth field formulation; a separate ContMDiff theorem on a bundled fiber-product total space is not supplied. Pending CI. All previous theorem statements preserved.

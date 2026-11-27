@@ -2944,6 +2944,170 @@ theorem projective_chart_tensor_overlap {E H : Type*}
   rw [hgc.fderiv_restrictScalars ℝ] at hp
   exact hp.symm
 
+
+/-- The horizontal projection is linear in its tangent argument. -/
+theorem horizontal_projection_add {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E]
+    (n u v : E) :
+    horizontalProjection n (u+v) = horizontalProjection n u+horizontalProjection n v := by
+  unfold horizontalProjection
+  rw [inner_add_right,add_smul]
+  abel
+
+theorem horizontal_projection_real_smul {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E] (n u : E) (r : ℝ) :
+    horizontalProjection n (r • u) = r • horizontalProjection n u := by
+  unfold horizontalProjection
+  rw [inner_smul_right_eq_smul,smul_sub,smul_assoc]
+
+/-- Actual projective tensor as a real-bilinear complex-valued form,
+rather than merely a function of two vectors. -/
+noncomputable def projectiveBilinearTensor {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E] (n : V → E) (x : V) :
+    V →ₗ[ℝ] V →ₗ[ℝ] ℂ :=
+  LinearMap.mk₂'ₛₗ (RingHom.id ℝ) (RingHom.id ℝ) (projectiveTensor n x)
+    (by
+      intro u v w
+      unfold projectiveTensor projectivePullback
+      rw [map_add,horizontal_projection_add,inner_add_left])
+    (by
+      intro r u v
+      unfold projectiveTensor projectivePullback
+      rw [map_smul,horizontal_projection_real_smul,inner_smul_left_eq_smul]
+      rfl)
+    (by
+      intro u v w
+      unfold projectiveTensor projectivePullback
+      rw [map_add,horizontal_projection_add,inner_add_right])
+    (by
+      intro r u v
+      unfold projectiveTensor projectivePullback
+      rw [map_smul,horizontal_projection_real_smul,inner_smul_right_eq_smul]
+      rfl)
+
+theorem projective_bilinear_tensor_apply {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E] (n : V → E) (x u v : V) :
+    projectiveBilinearTensor n x u v = projectiveTensor n x u v := rfl
+
+/-- Preferred normalized chart lift for the finite-dimensional model. -/
+noncomputable def projectivePreferredLift {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [FiniteDimensional ℂ E] (p : Projectivization ℂ E) :
+    (Fin (Module.finrank ℂ E-1) → ℂ) → E :=
+  let ell := innerSL ℂ p.rep
+  let b := affineRayRep ell p.rep
+  let hb := affine_rep_hyperplane ell p.rep (projective_preferred_functional_ne_zero p)
+  projectiveModelLift ell b (projectiveModelEquiv ell b hb)
+
+attribute [local instance] projective_isManifold
+
+/-- A globally defined bilinear form on the actual Mathlib tangent
+fiber at every ray. Preferred coordinates are used only to define
+the function; the following theorem proves its chart independence. -/
+noncomputable def projectiveGlobalTensor {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E] [FiniteDimensional ℂ E] (p : Projectivization ℂ E) :
+    TangentSpace (modelWithCornersSelf ℂ (Fin (Module.finrank ℂ E-1) → ℂ)) p →ₗ[ℝ]
+      TangentSpace (modelWithCornersSelf ℂ (Fin (Module.finrank ℂ E-1) → ℂ)) p →ₗ[ℝ] ℂ :=
+  projectiveBilinearTensor (projectivePreferredLift p) (projectivePreferredChart p p)
+
+theorem projective_preferred_lift_smooth {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E] [FiniteDimensional ℂ E] (p : Projectivization ℂ E) :
+    ContDiff ℝ (⊤ : WithTop ℕ∞) (projectivePreferredLift p) := by
+  unfold projectivePreferredLift
+  exact projective_model_lift_smooth _ _ _ _
+
+/-- The global bilinear tensor transforms by the actual tangent
+bundle coordinate changes defined by Mathlib, not an abstract
+assumption on a family of coordinate transformations. -/
+theorem projective_global_tensor_in_chart {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E] [FiniteDimensional ℂ E]
+    (p q : Projectivization ℂ E)
+    (hq : q ∈ (projectivePreferredChart p).source)
+    (u v : Fin (Module.finrank ℂ E-1) → ℂ) :
+    let I := modelWithCornersSelf ℂ (Fin (Module.finrank ℂ E-1) → ℂ)
+    projectiveGlobalTensor q (tangentCoordChange I p q q u)
+      (tangentCoordChange I p q q v) =
+    projectiveTensor (projectivePreferredLift p) (projectivePreferredChart p q) u v := by
+  dsimp only
+  let A := projectivePreferredChart p
+  let B := projectivePreferredChart q
+  let x := A q
+  let g := A.symm.trans B
+  have hB : q ∈ B.source := projective_preferred_functional_ne_zero q
+  have hx : x ∈ g.source := by
+    rw [OpenPartialHomeomorph.trans_source]
+    exact ⟨A.map_source hq, by change A.symm (A q) ∈ B.source; rw [A.left_inv hq]; exact hB⟩
+  have hg : g x = B q := by
+    change B (A.symm (A q)) = B q
+    rw [A.left_inv hq]
+  have h := projective_chart_tensor_overlap
+    (innerSL ℂ p.rep) (innerSL ℂ q.rep)
+    (affineRayRep (innerSL ℂ p.rep) p.rep)
+    (affineRayRep (innerSL ℂ q.rep) q.rep)
+    (affine_rep_hyperplane _ _ (projective_preferred_functional_ne_zero p))
+    (affine_rep_hyperplane _ _ (projective_preferred_functional_ne_zero q))
+    (projectiveModelEquiv _ _ _)
+    (projectiveModelEquiv _ _ _) x u v hx
+  change projectiveTensor (projectivePreferredLift p) x u v =
+    projectiveTensor (projectivePreferredLift q) (g x)
+      (fderiv ℂ g x u) (fderiv ℂ g x v) at h
+  rw [hg] at h
+  have hd : tangentCoordChange
+      (modelWithCornersSelf ℂ (Fin (Module.finrank ℂ E-1) → ℂ)) p q q =
+      fderiv ℂ g x := by
+    rw [tangentCoordChange_def,extChartAt_coe,extChartAt_coe_symm]
+    simp only [modelWithCornersSelf_coe,modelWithCornersSelf_coe_symm,
+      Function.id_comp,Function.comp_id,Set.range_id,fderivWithin_univ]
+    rfl
+  rw [hd]
+  exact h.symm
+
+/-- Global tensor coefficients in each preferred chart are smooth
+jointly in the base point and both tangent-coordinate arguments.
+Combined with the previous compatibility theorem this is a
+chartwise smooth tensor field on the global tangent bundle. -/
+theorem projective_global_tensor_chartwise_smooth {E : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E] [FiniteDimensional ℂ E] (p : Projectivization ℂ E) :
+    let H := Fin (Module.finrank ℂ E-1) → ℂ
+    let I := modelWithCornersSelf ℂ H
+    ContDiff ℝ (⊤ : WithTop ℕ∞)
+      (fun a : H × H × H =>
+        let q := (projectivePreferredChart p).symm a.1
+        projectiveGlobalTensor q (tangentCoordChange I p q q a.2.1)
+          (tangentCoordChange I p q q a.2.2)) := by
+  dsimp only
+  have h := projective_tensor_joint_smooth (projectivePreferredLift p)
+    (projective_preferred_lift_smooth p) (by
+      intro x
+      unfold projectivePreferredLift
+      exact projective_model_lift_unit _ _ _ _ x)
+  have he : (fun a : (Fin (Module.finrank ℂ E-1) → ℂ) ×
+        (Fin (Module.finrank ℂ E-1) → ℂ) × (Fin (Module.finrank ℂ E-1) → ℂ) =>
+        let q := (projectivePreferredChart p).symm a.1
+        projectiveGlobalTensor q
+          (tangentCoordChange (modelWithCornersSelf ℂ _) p q q a.2.1)
+          (tangentCoordChange (modelWithCornersSelf ℂ _) p q q a.2.2)) =
+      fun a => projectiveTensor (projectivePreferredLift p) a.1 a.2.1 a.2.2 := by
+    funext a
+    dsimp only
+    let A := projectivePreferredChart p
+    have ht : a.1 ∈ A.target := Set.mem_univ _
+    have hs : A.symm a.1 ∈ A.source := A.map_target ht
+    rw [projective_global_tensor_in_chart p (A.symm a.1) hs]
+    change projectiveTensor (projectivePreferredLift p) (A (A.symm a.1)) a.2.1 a.2.2 = _
+    rw [A.right_inv ht]
+  rw [he]
+  exact h
+
 end MicroMacro
 
 #print axioms MicroMacro.centered_shift
@@ -3111,3 +3275,12 @@ end MicroMacro
 #print axioms MicroMacro.projectiveUnitScale
 #print axioms MicroMacro.projectiveModelRepresentative
 #print axioms MicroMacro.projectiveModelLift
+#print axioms MicroMacro.horizontal_projection_add
+#print axioms MicroMacro.horizontal_projection_real_smul
+#print axioms MicroMacro.projective_bilinear_tensor_apply
+#print axioms MicroMacro.projective_preferred_lift_smooth
+#print axioms MicroMacro.projective_global_tensor_in_chart
+#print axioms MicroMacro.projective_global_tensor_chartwise_smooth
+#print axioms MicroMacro.projectiveBilinearTensor
+#print axioms MicroMacro.projectivePreferredLift
+#print axioms MicroMacro.projectiveGlobalTensor
