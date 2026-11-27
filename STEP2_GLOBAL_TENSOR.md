@@ -1,3 +1,5 @@
 # Step 2 topology and global tensor compatibility
 
+> Historical development checkpoint. Pending-CI language and intermediate limitations below describe that earlier branch, not the verified final source. See [Step 2 v1.0 baseline](STEP2_BASELINE_V1.0.md) for current scope and evidence.
+
 Based on verified commit 3064cc26f5781655fd2f26401d4bd3229d3a7793 (126 theorems, 22 definitions; both audits passed). Adds 14 candidate theorems and 3 definitions. Proves separation via a common affine chart, countability via an open quotient map, smooth normalized chart lifts, joint smoothness of the pullback tensor, and overlap compatibility with the actual complex chart-transition derivative. These are the chartwise gluing conditions for a smooth complex-valued real-bilinear tensor; a separately bundled Mathlib tangent-bundle section and explicit bilinearity are not yet implemented. All new declarations await CI. Main unchanged.

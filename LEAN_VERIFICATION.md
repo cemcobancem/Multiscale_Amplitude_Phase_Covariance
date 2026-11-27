@@ -1,5 +1,11 @@
 # Paper I — Lean verification
 
+## Current Step 2 checkpoint
+
+See [Step 2 v1.0 consolidation candidate](STEP2_BASELINE_V1.0.md) for the frozen source, reproducibility details and both successful 174-declaration audits. [Declaration-level dependencies](STEP2_AXIOM_AUDIT.tsv) are preserved in version control. Integration verification is required separately.
+
+## Historical notes (superseded by the current checkpoint)
+
 Companion formal algebra for the research manuscript on multiscale amplitude–phase covariance.
 
 ## Verified baseline (14 theorems)

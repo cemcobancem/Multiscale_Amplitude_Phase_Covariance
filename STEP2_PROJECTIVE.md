@@ -1,5 +1,7 @@
 # Step 2: intrinsic projective geometry
 
+> Historical development checkpoint. Pending-CI language and intermediate limitations below describe that earlier branch, not the verified final source. See [Step 2 v1.0 baseline](STEP2_BASELINE_V1.0.md) for current scope and evidence.
+
 Baseline: 80 audited theorems; main 15017f681226a6755dde8a95c2e8253d0ee3bc2c. This separate branch adds 17 candidate theorem declarations. CI pending.
 
 - Actual real Frechet derivative pullback; phase gauge invariance and reparameterization by the chain rule.

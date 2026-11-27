@@ -1,3 +1,5 @@
 # Step 2 chart extension
 
+> Historical development checkpoint. Pending-CI language and intermediate limitations below describe that earlier branch, not the verified final source. See [Step 2 v1.0 baseline](STEP2_BASELINE_V1.0.md) for current scope and evidence.
+
 Adds 10 candidate declarations and associated definitions to the 97-theorem branch. Uses Mathlib's actual Projectivization quotient, with affine representative of a ray defined by a nonvanishing continuous linear functional. Includes affine chart equivalence, smooth ambient transition formulas and cocycle law. Proves that two normalized differentiable lifts of the same projective map yield the same projective tensor, constructing the smooth gauge via the inner product. This is chart-level machinery; a global topology/ChartedSpace/IsManifold instance and full tangent bundle construction are still not supplied. Pending CI.

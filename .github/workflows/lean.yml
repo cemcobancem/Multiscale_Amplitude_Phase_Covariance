@@ -1,7 +1,7 @@
 name: Lean proof check
 on:
   push:
-    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation, paper-i-step2-projective-geometry, paper-i-step2-projective-charts, paper-i-step2-zero-safe-atlas, paper-i-step2-manifold-polar, paper-i-step2-global-tensor, paper-i-step2-tangent-field]
+    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation, paper-i-step2-projective-geometry, paper-i-step2-projective-charts, paper-i-step2-zero-safe-atlas, paper-i-step2-manifold-polar, paper-i-step2-global-tensor, paper-i-step2-tangent-field, paper-i-step2-consolidation-v1.0]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -41,6 +41,8 @@ jobs:
           definitions = re.findall(r"^(?:noncomputable )?def (\w+)", source, re.M)
           declarations = theorems + definitions
           assert len(theorems) == 146
+          assert len(definitions) == 28
+          assert len(declarations) == 174
           assert len(names) == len(declarations)
           assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)

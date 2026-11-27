@@ -1,4 +1,10 @@
-# Paper I verification ledger — 26 November 2026
+# Paper I verification ledger
+
+## Current checkpoint — 27 November 2026
+
+146 theorems and 28 definitions at ad2cf37bae34970a403d5782f8b613bd6c446828 passed both push and PR verification. See [baseline and evidence](STEP2_BASELINE_V1.0.md) and [individual dependencies](STEP2_AXIOM_AUDIT.tsv). Integration approval remains separate.
+
+## Historical ledger (26 November 2026; superseded status)
 
 The 30-theorem geometry extension passed at commit 5d98659ed9d562a86d4cb5219eda2483c631817f (run 45882532312). The 34-theorem extension passed at bbdeef2a585abb02c926049b08eda8dd9586b45b (run 45882680413). Both used Lean 4.24.0 and Mathlib v4.24.0; all theorem dependencies were restricted to propext, Classical.choice, Quot.sound. No Lean errors or warnings were reported. The proof-verification artifacts contain the axiom logs and resolved manifest.
 
