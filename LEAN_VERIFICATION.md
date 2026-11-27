@@ -1,5 +1,9 @@
 # Paper I — Lean verification
 
+## Step 3B certified mathematical checkpoint
+
+[Step 3B v1.0](STEP3B_BASELINE_V1.0.md): 179 theorems and 38 definitions passed both corrected runs. Full regression against both prior ledgers; [217-declaration permanent ledger](STEP3B_AXIOM_AUDIT.tsv). Fresh consolidation CI and owner approval pending.
+
 ## Step 3A certified mathematical checkpoint
 
 See [Step 3A v1.0](STEP3A_BASELINE_V1.0.md): 162 theorems and 36 definitions passed both corrected runs, with full Step 2 regression. The [198-declaration ledger](STEP3A_AXIOM_AUDIT.tsv) records exact dependencies. Both consolidation runs passed, and owner-approved PR #18 was merged. See the baseline for fresh main verification.
@@ -26,5 +30,7 @@ lake update
 lake exe cache get
 lake build
 lake env lean Covariance.lean
+lake env lean Step3A.lean
+lake env lean Step3B.lean
 ```
 CI audits every listed theorem against standard Lean axioms and archives the resolved manifest and logs. The extension is verified only when its own commit passes.

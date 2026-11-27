@@ -1,6 +1,6 @@
 # Paper I — Step 3A v1.0 certified coordinate foundations
 
-**Status:** The mathematical checkpoint and both consolidation workflows passed. Owner-approved [PR #18](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/pull/18) was merged into main on 27 November 2026 using a regular merge. The exact mathematical modules are preserved. Fresh main verification is the final release-verification gate; see the linked run below. Step 3B is not started.
+**Status:** The mathematical checkpoint and both consolidation workflows passed. Owner-approved [PR #18](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/pull/18) was merged into main on 27 November 2026 using a regular merge. The exact mathematical modules are preserved. Both final main runs passed; this historical baseline remains certified.
 
 ## Frozen source and dependency inventory
 
@@ -50,7 +50,8 @@ Initial runs 45957055683 and 45957070228 failed on four elaboration obligations.
 |---|---|---|---|
 | Consolidation push | [45963972578](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45963972578) | Passed, 198/198 | [15182412574](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45963972578/artifacts/15182412574) |
 | Consolidation PR | [45963979722](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45963979722) | Passed, 198/198 | [15181738297](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45963979722/artifacts/15181738297) |
-| Post-merge main | [45968623539](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45968623539) | Consult run for final result | See run |
+| Post-merge main | [45968623539](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45968623539) | Passed, 198/198 | [15183568941](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45968623539/artifacts/15183568941) |
+| Final main documentation | [45968699811](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45968699811) | Passed, 198/198 | [15184401082](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45968699811/artifacts/15184401082) |
 
 The two consolidation runs independently matched all 198 expanded ledger rows and all 174 original ledger rows. Artifact SHA-256 digests respectively: `08e1841b398da752b52ae887d2b2843c4bc0e22f3b612f2ea928cfc7d4ee6aa3` and `840d90d739649d888562587e81dddef2b0dae29d334893fb234c8636d526918d`. Both mathematical modules, both ledgers, the toolchain, and the entire verified integration tree are unchanged at the official merge. The raw integration artifacts expire in February 2027.
 
@@ -64,4 +65,4 @@ lake env lean Covariance.lean
 lake env lean Step3A.lean
 ```
 
-Consolidation CI checks the two frozen module blob IDs, exact complete inventory, original Step 2 ledger and exact expanded ledger dependency sets, plus the standard axiom whitelist. Both fresh integration runs passed; owner approval was received and PR #18 was merged regularly. Final release verification additionally requires successful post-merge main CI. Proposed milestone tag: `paper-i-step3a-v1.0`, targeting the official mathematical merge commit above after successful main CI. The available GitHub interface does not expose tag creation. Lake package version remains 0.2.0, distinct from the milestone. Step 3B is not started.
+Consolidation CI checks the two frozen module blob IDs, exact complete inventory, original Step 2 ledger and exact expanded ledger dependency sets, plus the standard axiom whitelist. Both fresh integration runs passed; owner approval was received and PR #18 was merged regularly. Final release verification succeeded on both main runs. Proposed milestone tag: `paper-i-step3a-v1.0`, targeting the official mathematical merge commit above after successful main CI. The available GitHub interface does not expose tag creation. Lake package version remains 0.2.0, distinct from the milestone. Step 3B is a separate subsequent checkpoint.

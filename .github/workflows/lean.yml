@@ -1,7 +1,7 @@
 name: Lean proof check
 on:
   push:
-    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation, paper-i-step2-projective-geometry, paper-i-step2-projective-charts, paper-i-step2-zero-safe-atlas, paper-i-step2-manifold-polar, paper-i-step2-global-tensor, paper-i-step2-tangent-field, paper-i-step2-consolidation-v1.0, paper-i-step3-lorentzian-foundations]
+    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation, paper-i-step2-projective-geometry, paper-i-step2-projective-charts, paper-i-step2-zero-safe-atlas, paper-i-step2-manifold-polar, paper-i-step2-global-tensor, paper-i-step2-tangent-field, paper-i-step2-consolidation-v1.0, paper-i-step3-lorentzian-foundations, paper-i-step3b-connection-uniqueness]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -32,21 +32,24 @@ jobs:
           set -euo pipefail
           test "$(git hash-object Covariance.lean)" = 8481ef5c36f41b016b9fe5d99c9747fea0cbb71e
           test "$(git hash-object Step3A.lean)" = c3ff5a4b4a4f23ee79bfa2342a68d35780fae98e
+          test "$(git hash-object Step3B.lean)" = c68a9e0892b80328c265a69d10e2ce3d00ceccef
           test "$(git hash-object STEP2_AXIOM_AUDIT.tsv)" = 039482d1eaae0d6291a31bc582f3b20dafda11cb
+          test "$(git hash-object STEP3A_AXIOM_AUDIT.tsv)" = bb169a74488b7b0c92621c2b95657d6a9e08074d
           lake env lean Covariance.lean | tee axiom-audit.log
           lake env lean Step3A.lean | tee -a axiom-audit.log
+          lake env lean Step3B.lean | tee -a axiom-audit.log
           python3 - <<'PY'
           import re
           from pathlib import Path
-          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text()
+          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text()
           out = Path("axiom-audit.log").read_text()
           names = re.findall(r"^#print axioms (MicroMacro\.\w+)$", source, re.M)
           theorems = re.findall(r"^theorem (\w+)", source, re.M)
           definitions = re.findall(r"^(?:noncomputable )?def (\w+)", source, re.M)
           declarations = theorems + definitions
-          assert len(theorems) == 162
-          assert len(definitions) == 36
-          assert len(declarations) == 198
+          assert len(theorems) == 179
+          assert len(definitions) == 38
+          assert len(declarations) == 217
           assert len(names) == len(declarations)
           assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)
@@ -71,7 +74,7 @@ jobs:
               expanded = list(csv.reader(f, delimiter="\t"))[1:]
           assert len(expanded) == 198
           assert len({row[0] for row in expanded}) == 198
-          assert {row[0] for row in expanded} == set(names)
+          assert {row[0] for row in expanded} == set(re.findall(r"^#print axioms (MicroMacro\.\w+)$", Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text(), re.M))
           for module in ("Covariance.lean", "Step3A.lean"):
               module_source = Path(module).read_text()
               module_th = {"MicroMacro." + n for n in re.findall(r"^theorem (\w+)", module_source, re.M)}
@@ -85,6 +88,29 @@ jobs:
                   actual = ";".join(sorted(x.strip() for x in report.split(",") if x.strip()))
                   assert actual == push == pr, name
           print("Expanded permanent ledger matched for all 198 declarations")
+          with Path("STEP3B_AXIOM_AUDIT.tsv").open() as f:
+              final = list(csv.reader(f, delimiter="\t"))[1:]
+          assert len(final) == 217
+          assert len({row[0] for row in final}) == 217
+          assert {row[0] for row in final} == set(names)
+          for module in ("Covariance.lean", "Step3A.lean", "Step3B.lean"):
+              module_source = Path(module).read_text()
+              module_th = {"MicroMacro." + n for n in re.findall(r"^theorem (\w+)", module_source, re.M)}
+              module_def = {"MicroMacro." + n for n in re.findall(r"^(?:noncomputable )?def (\w+)", module_source, re.M)}
+              assert {(n, k) for n, k, mod, p, q in final if mod == module} == (
+                  {(n, "theorem") for n in module_th} | {(n, "definition") for n in module_def})
+          prior = {n: (k, mod, p, q) for n, k, mod, p, q in expanded}
+          current = {n: (k, mod, p, q) for n, k, mod, p, q in final}
+          assert all(current[n] == v for n, v in prior.items())
+          all_reports = re.findall(r"'(MicroMacro\.\w+)' depends on axioms: \[([^\]]*)\]", out)
+          assert {n for n, _ in all_reports} == set(names)
+          for name, kind, module, push, pr in final:
+              reports = [r for n, r in all_reports if n == name]
+              assert reports, name
+              for report in reports:
+                  actual = ";".join(sorted(x.strip() for x in report.split(",") if x.strip()))
+                  assert actual == push == pr, name
+          print("Step 3B permanent ledger matched for all 217 declarations")
           assert "sorryAx" not in out
           print("Axiom audit passed for all", len(theorems), "theorems and", len(definitions), "definitions")
           PY
