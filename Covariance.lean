@@ -2222,7 +2222,7 @@ theorem projective_chart_nonvanishing_mk {E : Type*} [NormedAddCommGroup E]
   have he : (c:ℂ) • v = (Projectivization.mk ℂ v hv).rep := hc
   rw [← he, map_smul]
   change (c:ℂ)*ell v ≠ 0 ↔ ell v ≠ 0
-  simp [mul_ne_zero_iff, Units.ne_zero c]
+  simp [Units.ne_zero c]
 
 /-- The affine chart domains are open in the quotient topology. -/
 theorem projective_chart_domain_open {E : Type*} [NormedAddCommGroup E]
@@ -2331,9 +2331,8 @@ theorem ray_normalize_same_ray {E : Type*} [NormedAddCommGroup E]
     Projectivization.mk ℂ (rayNormalize z) hn = Projectivization.mk ℂ z hz := by
   apply (Projectivization.mk_eq_mk_iff' ℂ _ _ _ _).2
   refine ⟨((‖z‖⁻¹ : ℝ):ℂ), ?_⟩
-  change rayNormalize z = ((‖z‖⁻¹ : ℝ):ℂ) • z
-  rw [← Complex.coe_smul]
-  rfl
+  change ((‖z‖⁻¹ : ℝ):ℂ) • z = rayNormalize z
+  exact IsScalarTower.algebraMap_smul (A := ℂ) (‖z‖⁻¹) z
 
 /-- C² multiplets induce a continuous projective tensor at every
 point with nonzero total norm, even at component zeros. -/
