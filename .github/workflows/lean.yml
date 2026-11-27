@@ -51,9 +51,9 @@ jobs:
           theorems = re.findall(r"^theorem (\w+)", source, re.M)
           definitions = re.findall(r"^(?:noncomputable )?def (\w+)", source, re.M)
           declarations = theorems + definitions
-          assert len(theorems) == 221
+          assert len(theorems) == 223
           assert len(definitions) == 49
-          assert len(declarations) == 270
+          assert len(declarations) == 272
           assert len(names) == len(declarations)
           assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)

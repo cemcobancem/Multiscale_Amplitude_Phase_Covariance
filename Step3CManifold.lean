@@ -216,6 +216,115 @@ theorem chart_manifold_smooth_glue (n : WithTop ℕ∞)
     have ht := hT.1 p p (mem_extChartAt_source p)
     rw [tangentCoordChange_self (mem_extChartAt_source p)] at ht
     exact ht
+
+/-- Compose the open-coordinate result with the actual Mathlib transition
+and tangent Jacobian. Only metric and vector-field germ relations remain
+as representation hypotheses; no connection covariance is assumed. -/
+theorem chart_manifold_constructed_overlap
+    (a b p : M) (ha : p ∈ (extChartAt I4 a).source)
+    (hb : p ∈ (extChartAt I4 b).source)
+    (g h : E4 → Fin 4 → Fin 4 → ℝ)
+    (s t : Set E4) (hs : IsOpen s) (ht : IsOpen t)
+    (hx : extChartAt I4 a p ∈ s) (hy : extChartAt I4 b p ∈ t)
+    (hgs : ∀ z ∈ s, ∀ i j, g z i j = g z j i)
+    (hhs : ∀ z ∈ t, ∀ i j, h z i j = h z j i)
+    (hgd : ∀ i j, DifferentiableAt ℝ (fun z => g z i j) (extChartAt I4 a p))
+    (hhd : ∀ i j, DifferentiableAt ℝ (fun z => h z i j) (extChartAt I4 b p))
+    (hgsig : hasLorentzSignature (g (extChartAt I4 a p)))
+    (hhsig : hasLorentzSignature (h (extChartAt I4 b p)))
+    (X Y : E4 → E4) (w : E4)
+    (hm : ∀ u v, (fun z => chartMetricBundle (g z) u v) =ᶠ[𝓝 (extChartAt I4 a p)]
+      (fun z => chartPullbackMetric (chartManifoldTransition a b)
+        (fun q => chartMetricBundle (h q)) z u v))
+    (hX : DifferentiableAt ℝ X (extChartAt I4 a p))
+    (hY : DifferentiableAt ℝ Y (extChartAt I4 b p))
+    (he : (fun z => fderiv ℝ (chartManifoldTransition a b) z (X z)) =ᶠ[
+      𝓝 (extChartAt I4 a p)] (fun z => Y (chartManifoldTransition a b z))) :
+    tangentCoordChange I4 a b p (chartCovariantDerivative
+      (fun z u v => chartConstructedCoefficients g z u v) X (extChartAt I4 a p) w) =
+    chartCovariantDerivative (fun z u v => chartConstructedCoefficients h z u v)
+      Y (extChartAt I4 b p) (tangentCoordChange I4 a b p w) := by
+  let F := chartManifoldTransition a b
+  let R := chartManifoldTransition b a
+  let x := extChartAt I4 a p
+  let y := extChartAt I4 b p
+  have hF : F x = y := chart_manifold_transition_value a b p ha
+  have hR : R y = x := chart_manifold_transition_value b a p hb
+  have hf : ContDiffAt ℝ (⊤ : WithTop ℕ∞) F x :=
+    chart_manifold_transition_regular a b p ha hb
+  have hr : DifferentiableAt ℝ R (F x) := by
+    rw [hF]
+    exact (chart_manifold_transition_regular b a p hb ha).differentiableAt (by simp)
+  have h0 : R (F x) = x := by rw [hF, hR]
+  have hl : R ∘ F =ᶠ[𝓝 x] id := chart_manifold_inverse_germ a b p ha hb
+  have hh : F ∘ R =ᶠ[𝓝 (F x)] id := by
+    rw [hF]
+    exact chart_manifold_inverse_germ b a p hb ha
+  have hy' : F x ∈ t := by rw [hF]; exact hy
+  have hhd' : ∀ i j, DifferentiableAt ℝ (fun z => h z i j) (F x) := by
+    rw [hF]
+    exact hhd
+  have hhsig' : hasLorentzSignature (h (F x)) := by rw [hF]; exact hhsig
+  have hY' : DifferentiableAt ℝ Y (F x) := by rw [hF]; exact hY
+  have H := chart_constructed_covariant_overlap g h s t hs ht F R X Y x w
+    hx hy' hgs hhs hgd hhd' hgsig hhsig' hf hr h0 hl hh hm hX hY' he
+  rw [hF] at H
+  rw [chart_manifold_tangent_jacobian a b p]
+  exact H
+
+/-- Glue the actual covariant derivative computed from chartwise metrics
+and field representatives. Compatibility is derived using the preceding
+overlap theorem and Mathlib tangent cocycle, not supplied for the result.
+The local regularity premise still needs to be discharged from intrinsic
+smooth metric and field data in a subsequent proof. -/
+theorem chart_manifold_constructed_descent (n : WithTop ℕ∞)
+    (g : M → E4 → Fin 4 → Fin 4 → ℝ)
+    (s : M → Set E4) (hs : ∀ a, IsOpen (s a))
+    (X : M → E4 → E4) (W : ∀ p : M, TangentSpace I4 p)
+    (hdom : ∀ a p, p ∈ (extChartAt I4 a).source → extChartAt I4 a p ∈ s a)
+    (hgs : ∀ a z, z ∈ s a → ∀ i j, g a z i j = g a z j i)
+    (hgd : ∀ a p, p ∈ (extChartAt I4 a).source → ∀ i j,
+      DifferentiableAt ℝ (fun z => g a z i j) (extChartAt I4 a p))
+    (hgsig : ∀ a p, p ∈ (extChartAt I4 a).source →
+      hasLorentzSignature (g a (extChartAt I4 a p)))
+    (hX : ∀ a p, p ∈ (extChartAt I4 a).source →
+      DifferentiableAt ℝ (X a) (extChartAt I4 a p))
+    (hm : ∀ a b p, p ∈ (extChartAt I4 a).source →
+      p ∈ (extChartAt I4 b).source → ∀ u v,
+      (fun z => chartMetricBundle (g a z) u v) =ᶠ[𝓝 (extChartAt I4 a p)]
+        (fun z => chartPullbackMetric (chartManifoldTransition a b)
+          (fun q => chartMetricBundle (g b q)) z u v))
+    (he : ∀ a b p, p ∈ (extChartAt I4 a).source →
+      p ∈ (extChartAt I4 b).source →
+      (fun z => fderiv ℝ (chartManifoldTransition a b) z (X a z)) =ᶠ[
+        𝓝 (extChartAt I4 a p)] (fun z => X b (chartManifoldTransition a b z)))
+    (hreg : ∀ a, ContMDiffOn I4 I4 n
+      (fun p => chartCovariantDerivative
+        (fun z u v => chartConstructedCoefficients (g a) z u v)
+        (X a) (extChartAt I4 a p) (tangentCoordChange I4 p a p (W p)))
+      (extChartAt I4 a).source) :
+    ∃! S : ∀ p : M, TangentSpace I4 p,
+      (∀ a p, p ∈ (extChartAt I4 a).source →
+        tangentCoordChange I4 p a p (S p) =
+          chartCovariantDerivative
+            (fun z u v => chartConstructedCoefficients (g a) z u v)
+            (X a) (extChartAt I4 a p) (tangentCoordChange I4 p a p (W p))) ∧
+      ContMDiff I4 I4.tangent n (fun p => TotalSpace.mk' E4 p (S p)) := by
+  let value : M → M → E4 := fun a p => chartCovariantDerivative
+    (fun z u v => chartConstructedCoefficients (g a) z u v)
+    (X a) (extChartAt I4 a p) (tangentCoordChange I4 p a p (W p))
+  apply chart_manifold_smooth_glue n value _ hreg
+  intro a b p ha hb
+  have H := chart_manifold_constructed_overlap a b p ha hb (g a) (g b)
+    (s a) (s b) (hs a) (hs b) (hdom a p ha) (hdom b p hb)
+    (hgs a) (hgs b) (hgd a p ha) (hgd b p hb)
+    (hgsig a p ha) (hgsig b p hb) (X a) (X b)
+    (tangentCoordChange I4 p a p (W p)) (hm a b p ha hb)
+    (hX a p ha) (hX b p hb) (he a b p ha hb)
+  rw [chart_manifold_tangent_cocycle p a b p (W p)
+    (mem_extChartAt_source p) ha hb] at H
+  exact H
+
 end Manifold
 end MicroMacro
 
@@ -234,3 +343,6 @@ end MicroMacro
 #print axioms MicroMacro.chart_manifold_smooth_glue
 #print axioms MicroMacro.chartConstructedCoefficients
 #print axioms MicroMacro.chartManifoldTransition
+
+#print axioms MicroMacro.chart_manifold_constructed_overlap
+#print axioms MicroMacro.chart_manifold_constructed_descent
