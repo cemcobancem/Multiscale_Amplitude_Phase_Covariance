@@ -92,7 +92,8 @@ theorem chart_covariant_leibniz (C : E → E →L[ℝ] E →L[ℝ] E)
         a x • chartCovariantDerivative (fun z b c => C z b c) X x w := by
   simp only [chartCovariantDerivative, fderiv_smul ha hX,
     ContinuousLinearMap.add_apply, ContinuousLinearMap.smul_apply,
-    ContinuousLinearMap.smulRight_apply, Pi.smul_apply, map_smul, smul_add]
+    ContinuousLinearMap.smulRight_apply, smul_add]
+  rw [show (a • X) x = a x • X x from rfl, map_smul]
   abel
 
 theorem chart_covariant_torsion (C : E → E →L[ℝ] E →L[ℝ] E)
@@ -101,7 +102,7 @@ theorem chart_covariant_torsion (C : E → E →L[ℝ] E →L[ℝ] E)
     chartCovariantDerivative (fun z a b => C z a b) Y x (X x) -
       chartCovariantDerivative (fun z a b => C z a b) X x (Y x) =
         fderiv ℝ Y x (X x) - fderiv ℝ X x (Y x) := by
-  unfold chartCovariantDerivative
+  simp only [chartCovariantDerivative]
   rw [hs (X x) (Y x)]
   abel
 
@@ -146,8 +147,8 @@ theorem chart_manifold_transition_regular (a b p : M)
   have hb' : p ∈ (chartAt E4 b).source := by simpa only [extChartAt_source] using hb
   have h := OpenPartialHomeomorph.contDiffWithinAt_extend_coord_change'
     (I := I4) (n := (⊤ : WithTop ℕ∞))
-    (chart_mem_maximalAtlas (I := I4) b)
-    (chart_mem_maximalAtlas (I := I4) a) hb' ha'
+    (IsManifold.chart_mem_maximalAtlas (I := I4) (n := (⊤ : WithTop ℕ∞)) b)
+    (IsManifold.chart_mem_maximalAtlas (I := I4) (n := (⊤ : WithTop ℕ∞)) a) hb' ha'
   simpa [chartManifoldTransition, extChartAt, ModelWithCorners.range_eq_univ,
     contDiffWithinAt_univ] using h
 
@@ -194,14 +195,14 @@ theorem chart_manifold_smooth_glue (n : WithTop ℕ∞)
     ∃! S : ∀ p : M, TangentSpace I4 p,
       (∀ a p, p ∈ (extChartAt I4 a).source →
         tangentCoordChange I4 p a p (S p) = value a p) ∧
-      ContMDiff I4 I4.tangent n (fun p => TotalSpace.mk' E4 p (S p)) := by
+      ContMDiff I4 (ModelWithCorners.prod I4 I4) n (fun p => TotalSpace.mk' E4 p (S p)) := by
   let S : ∀ p : M, TangentSpace I4 p := fun p => value p p
   have hS (a p : M) (hp : p ∈ (extChartAt I4 a).source) :
       tangentCoordChange I4 p a p (S p) = value a p :=
     overlap p a p (mem_extChartAt_source p) hp
   refine ⟨S, ⟨hS, ?_⟩, ?_⟩
   · intro p
-    apply (Bundle.contMDiffAt_section p).2
+    apply (Bundle.contMDiffAt_section (n := n) (s := S) p).2
     have he : (fun q => (trivializationAt E4 (TangentSpace I4) p
       (TotalSpace.mk' E4 q (S q))).2) =ᶠ[𝓝 p] value p := by
       filter_upwards [show ∀ᶠ q in 𝓝 p, q ∈ (extChartAt I4 p).source from
@@ -215,7 +216,7 @@ theorem chart_manifold_smooth_glue (n : WithTop ℕ∞)
     funext p
     have ht := hT.1 p p (mem_extChartAt_source p)
     rw [tangentCoordChange_self (mem_extChartAt_source p)] at ht
-    exact ht
+    simpa using ht
 
 /-- Compose the open-coordinate result with the actual Mathlib transition
 and tangent Jacobian. Only metric and vector-field germ relations remain
@@ -309,7 +310,7 @@ theorem chart_manifold_constructed_descent (n : WithTop ℕ∞)
           chartCovariantDerivative
             (fun z u v => chartConstructedCoefficients (g a) z u v)
             (X a) (extChartAt I4 a p) (tangentCoordChange I4 p a p (W p))) ∧
-      ContMDiff I4 I4.tangent n (fun p => TotalSpace.mk' E4 p (S p)) := by
+      ContMDiff I4 (ModelWithCorners.prod I4 I4) n (fun p => TotalSpace.mk' E4 p (S p)) := by
   let value : M → M → E4 := fun a p => chartCovariantDerivative
     (fun z u v => chartConstructedCoefficients (g a) z u v)
     (X a) (extChartAt I4 a p) (tangentCoordChange I4 p a p (W p))
