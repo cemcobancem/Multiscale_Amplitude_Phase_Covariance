@@ -17,3 +17,7 @@ The corrected 239-declaration checkpoint passed runs 45986735069 and 45986740673
 ## End-to-end candidate composition
 
 Two additional theorems compose actual chart transition extraction with the constructed LC overlap theorem, and derive compatibility of chartwise covariant derivatives before descending to an actual tangent-bundle section. The metric and vector field germs and local regularity are explicit premises, not a claim of automatic intrinsic representation. Total 272 declarations (223 theorems, 49 definitions). General smooth intrinsic metric and vector-field extraction, local regularity discharge, global operator laws and uniqueness remain outstanding pending verification.
+
+## Ordinary smooth regularity extension
+
+All six previous runs stopped at the same atlas scalar-field inference error; fix at a3f9151606165da7cfb0adff0810ab25cb4cd73a. Step3CSmooth.lean introduces 13 new theorem candidates, preserving earlier statements. C² transitions suffice for the Hessian symmetry, LC overlap and actual covariant derivative compatibility; ordinary C-infinity implies C². Local determinant, adjugate, inverse, metric partial and Christoffel regularity and bundled coefficient and covariant output regularity are derived at nondegenerate points without requiring ambient global nondegeneracy. Total 285 declarations. These proofs await CI; intrinsic chart data and global connection laws remain outstanding.
