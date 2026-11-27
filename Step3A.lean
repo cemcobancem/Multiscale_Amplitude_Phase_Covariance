@@ -75,7 +75,11 @@ theorem coordinate_inverse_left
       intro l hl
       rw [hg i l, hA l j, mul_comm]
     _ = if j = i then 1 else 0 := hinv j i
-    _ = _ := by rw [eq_comm]
+    _ = _ := by
+      by_cases h : i = j
+      · subst j
+        rfl
+      · simp [h, Ne.symm h]
 
 /-- A vector annihilated by the metric matrix is zero.
 This supplies nondegeneracy independently of the signature witness. -/
@@ -125,9 +129,9 @@ theorem metric_partial_line_derivative
     (g : (Fin 4 → ℝ) → Fin 4 → Fin 4 → ℝ)
     (x : Fin 4 → ℝ) (k i j : Fin 4)
     (hg : DifferentiableAt ℝ (fun y => g y i j) x) :
-    HasDerivAt (fun t : ℝ => g (x + t • Pi.single k (1 : ℝ)) i j)
+    HasDerivAt (fun t : ℝ => g (x + t • (Pi.single k (1 : ℝ) : Fin 4 → ℝ)) i j)
       (metricPartial g x k i j) 0 := by
-  let v : Fin 4 → ℝ := Pi.single k 1
+  let v : Fin 4 → ℝ := Pi.single k (1 : ℝ)
   have hl : HasDerivAt (fun t : ℝ => x + t • v) v 0 := by
     simpa only [zero_add, one_smul] using
       (hasDerivAt_const (0 : ℝ) x).add
@@ -229,7 +233,10 @@ theorem minkowski_inverse (i j : Fin 4) :
 theorem minkowski_diagonal_signature :
     minkowskiMetric 0 0 = -1 ∧ minkowskiMetric 1 1 = 1 ∧
     minkowskiMetric 2 2 = 1 ∧ minkowskiMetric 3 3 = 1 := by
-  norm_num [minkowskiMetric]
+  have h1 : (1 : Fin 4) ≠ 0 := by decide
+  have h2 : (2 : Fin 4) ≠ 0 := by decide
+  have h3 : (3 : Fin 4) ≠ 0 := by decide
+  simp [minkowskiMetric, h1, h2, h3]
 
 theorem minkowski_coordinate_data :
     lorentzCoordinateData (fun _ => minkowskiMetric) (fun _ => minkowskiMetric) := by
@@ -279,7 +286,7 @@ theorem lorentz_coordinate_stress_on_shell_jet
           2*m2*u*p i))) = 0 := by
   rcases h with ⟨hg, hA, hinv, hs, hAs, hsig⟩
   exact local_metric_stress_on_shell Finset.univ (A x) (g x) p H m2 u ν
-    (Finset.mem_univ ν) (hA x) hH (fun i => hinv i ν) hkg
+    (Finset.mem_univ ν) (hA x) hH (fun i => hinv x i ν) hkg
 
 end MicroMacro
 
