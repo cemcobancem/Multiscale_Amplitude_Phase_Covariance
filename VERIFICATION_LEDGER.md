@@ -1,5 +1,9 @@
 # Paper I verification ledger
 
+## Step 3C checkpoint — 27 November 2026
+
+Commit 9f174c8fde55d87b76eb8faa3861d153d22f8b90 passed push [46048362407](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/46048362407) and PR [46048372589](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/46048372589). All 323 explicit targets (268 theorems, 55 definitions) audited; zero forbidden dependencies, exact cross-run agreement and all four prior ledgers matched. See [baseline](STEP3C_BASELINE_V1.0.md), [permanent ledger](STEP3C_AXIOM_AUDIT.tsv) and [mathematical review](STEP3C_MATHEMATICAL_REVIEW.md). Source verified; documentation consolidation only; not merged. No Step 3D.
+
 ## Step 3B checkpoint — 27 November 2026
 
 Commit 968fcced30d9d075f43086e5853e88fca9915356 passed runs [45971179929](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45971179929) and [45971186228](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45971186228). All 217 declarations (179 theorems, 38 definitions) audited; all 198 prior dependencies preserved. See [baseline](STEP3B_BASELINE_V1.0.md) and [permanent ledger](STEP3B_AXIOM_AUDIT.tsv). Integration runs 45975511940 and 45975520822 passed all 217 dependencies. Owner-approved PR #19 was merged at 5305cade10937f07f1d6650a2f74687e63e10ef9. Fresh main verification: [45977563890](https://github.com/cemcobancem/Multiscale_Amplitude_Phase_Covariance/actions/runs/45977563890).
