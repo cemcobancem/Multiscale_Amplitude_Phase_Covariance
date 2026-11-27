@@ -1581,7 +1581,8 @@ theorem covariant_trace_actual_derivative {d : Type*} (s : Finset d)
     convert hd using 1
     ring
   have hmass : HasDerivAt (fun x => m2*(u x*u x)) (2*m2*u t*du) t := by
-    convert (hu.mul hu).const_mul m2 using 1 <;> ring
+    convert (hu.mul hu).const_mul m2 using 1
+    ring
   have h := hsum.add hmass
   rw [covariant_kinetic_trace_jet s Γ (fun i j => A i j t) dA
     (fun i => p i t) dp hcompat] at h
@@ -2445,8 +2446,8 @@ theorem projective_polar_covariance {ι V : Type*} [Fintype ι]
 a chosen affine origin b with ell(b)=1. -/
 noncomputable def projectiveKernelProjection {E : Type*}
     [NormedAddCommGroup E] [NormedSpace ℂ E]
-    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1) : E →L[ℂ] ell.ker :=
-  ((ContinuousLinearMap.id ℂ E)-ell.smulRight b).codRestrict ell.ker (by
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1) : E →L[ℂ] (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) :=
+  ((ContinuousLinearMap.id ℂ E)-ell.smulRight b).codRestrict (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) (by
     intro z
     change ell (z-ell z • b) = 0
     simp [map_sub, map_smul, hb])
@@ -2462,7 +2463,7 @@ noncomputable def projectiveHyperplaneModel {E H : Type*}
     [NormedAddCommGroup E] [NormedSpace ℂ E]
     [NormedAddCommGroup H] [NormedSpace ℂ H]
     (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
-    (e : ell.ker ≃L[ℂ] H) : {v : E // ell v = 1} ≃ₜ H where
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) : {v : E // ell v = 1} ≃ₜ H where
   toFun v := e (projectiveKernelProjection ell b hb v.val)
   invFun x := ⟨b+(e.symm x : E), by
     have h : ell (e.symm x : E) = 0 := (e.symm x).property
@@ -2494,7 +2495,7 @@ noncomputable def projectiveModelChart {E H : Type*}
     [NormedAddCommGroup E] [NormedSpace ℂ E]
     [NormedAddCommGroup H] [NormedSpace ℂ H]
     (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
-    (e : ell.ker ≃L[ℂ] H) :
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) :
     OpenPartialHomeomorph (Projectivization ℂ E) H where
   toFun p := e (projectiveKernelProjection ell b hb (projectiveAffineRep ell p))
   invFun x := ((projectiveAffineHomeomorph ell).symm
@@ -2528,7 +2529,7 @@ theorem projective_model_chart_inverse {E H : Type*}
     [NormedAddCommGroup E] [NormedSpace ℂ E]
     [NormedAddCommGroup H] [NormedSpace ℂ H]
     (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
-    (e : ell.ker ≃L[ℂ] H) (x : H) :
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) (x : H) :
     (projectiveModelChart ell b hb e).symm x =
       Projectivization.mk ℂ (b+(e.symm x : E)) (by
         intro hz
@@ -2542,7 +2543,7 @@ theorem projective_model_chart_transition {E H : Type*}
     [NormedAddCommGroup H] [NormedSpace ℂ H]
     (ell ell' : E →L[ℂ] ℂ) (b b' : E)
     (hb : ell b = 1) (hb' : ell' b' = 1)
-    (e : ell.ker ≃L[ℂ] H) (e' : ell'.ker ≃L[ℂ] H)
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) (e' : (LinearMap.ker (ell' : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H)
     (k : WithTop ℕ∞) :
     ContDiffOn ℂ k
       ((projectiveModelChart ell b hb e).symm.trans
@@ -2553,8 +2554,8 @@ theorem projective_model_chart_transition {E H : Type*}
     (projectiveModelChart ell' b' hb' e')).source
   let f : H → E := fun x => b+(e.symm x : E)
   have hf : ContDiff ℂ k f := by
-    change ContDiff ℂ k (fun x => b+ell.ker.subtypeL (e.symm x))
-    exact contDiff_const.add (ell.ker.subtypeL.contDiff.comp e.symm.contDiff)
+    change ContDiff ℂ k (fun x => b+(LinearMap.ker (ell : E →ₗ[ℂ] ℂ)).subtypeL (e.symm x))
+    exact contDiff_const.add ((LinearMap.ker (ell : E →ₗ[ℂ] ℂ)).subtypeL.contDiff.comp e.symm.contDiff)
   have hm : Set.MapsTo f S {z : E | ell' z ≠ 0} := by
     intro x hx
     have hx' : (projectiveModelChart ell b hb e).symm x ∈
@@ -2579,22 +2580,22 @@ the same model dimension, without assuming a charted space. -/
 theorem projective_kernel_finrank {E : Type*}
     [NormedAddCommGroup E] [NormedSpace ℂ E] [FiniteDimensional ℂ E]
     (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1) :
-    Module.finrank ℂ ell.ker = Module.finrank ℂ E-1 := by
+    Module.finrank ℂ (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) = Module.finrank ℂ E-1 := by
   have hs : Function.Surjective (ell : E →ₗ[ℂ] ℂ) := by
     intro c
     refine ⟨c • b, ?_⟩
     change ell (c • b) = c
     simp [map_smul,hb]
   have h := LinearMap.finrank_range_add_finrank_ker (ell : E →ₗ[ℂ] ℂ)
-  rw [LinearMap.range_eq_top.mpr hs,Submodule.finrank_top,Module.finrank_self] at h
-  change 1+Module.finrank ℂ ell.ker = Module.finrank ℂ E at h
+  rw [LinearMap.range_eq_top.mpr hs,finrank_top,Module.finrank_self] at h
+  change 1+Module.finrank ℂ (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) = Module.finrank ℂ E at h
   omega
 
 /-- The fixed finite-dimensional complex model for all ray charts. -/
 noncomputable def projectiveModelEquiv {E : Type*}
     [NormedAddCommGroup E] [NormedSpace ℂ E] [FiniteDimensional ℂ E]
     (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1) :
-    ell.ker ≃L[ℂ] (Fin (Module.finrank ℂ E-1) → ℂ) :=
+    (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] (Fin (Module.finrank ℂ E-1) → ℂ) :=
   ContinuousLinearEquiv.ofFinrankEq (by
     rw [projective_kernel_finrank ell b hb]
     simp [Module.finrank_fin_fun])
