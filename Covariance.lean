@@ -2647,6 +2647,307 @@ theorem projective_isManifold {E : Type*}
   unfold projectivePreferredChart
   exact projective_model_chart_transition _ _ _ _ _ _ _ _ _
 
+
+/-- Any two rays admit a common affine chart. This is stronger than
+separate local Hausdorffness of each individual chart. -/
+theorem projective_common_chart {E : Type*} [NormedAddCommGroup E]
+    [InnerProductSpace ℂ E] (p q : Projectivization ℂ E) :
+    ∃ ell : E →L[ℂ] ℂ, ell p.rep ≠ 0 ∧ ell q.rep ≠ 0 := by
+  obtain ⟨a,ha⟩ := projective_chart_cover p
+  obtain ⟨b,hb⟩ := projective_chart_cover q
+  by_cases hq : a q.rep = 0
+  · by_cases hp : b p.rep = 0
+    · refine ⟨a+b, ?_, ?_⟩
+      · simpa [hp] using ha
+      · simpa [hq] using hb
+    · exact ⟨b,hp,hb⟩
+  · exact ⟨a,ha,hq⟩
+
+/-- Hausdorffness for the actual quotient topology: separate two
+different rays in a common open chart, then lift the disjoint open
+neighbourhoods along the open subtype embedding. -/
+theorem projective_t2Space {E : Type*} [NormedAddCommGroup E]
+    [InnerProductSpace ℂ E] : T2Space (Projectivization ℂ E) := by
+  constructor
+  intro p q hpq
+  obtain ⟨ell,hp,hq⟩ := projective_common_chart p q
+  let U := {r : Projectivization ℂ E | ell r.rep ≠ 0}
+  let p' : U := ⟨p,hp⟩
+  let q' : U := ⟨q,hq⟩
+  let e := projectiveAffineHomeomorph ell
+  haveI : T2Space U := T2Space.of_injective_continuous e.injective e.continuous
+  have hne : p' ≠ q' := fun h => hpq (congrArg Subtype.val h)
+  obtain ⟨A,B,hA,hB,hpA,hqB,hAB⟩ := t2_separation hne
+  have ho : IsOpenMap ((↑) : U → Projectivization ℂ E) :=
+    (projective_chart_domain_open ell).isOpenMap_subtype_val
+  refine ⟨Subtype.val '' A,Subtype.val '' B,ho A hA,ho B hB,
+    ⟨p',hpA,rfl⟩,⟨q',hqB,rfl⟩,?_⟩
+  apply Set.disjoint_left.2
+  rintro z ⟨a,ha,rfl⟩ ⟨b,hb,he⟩
+  exact Set.disjoint_left.1 hAB ha (Subtype.coe_injective he ▸ hb)
+
+/-- Nonzero complex scalars act continuously on nonzero vectors. -/
+def projectiveUnitScale {E : Type*} [NormedAddCommGroup E]
+    [NormedSpace ℂ E] (c : ℂˣ) (v : {v : E // v ≠ 0}) :
+    {v : E // v ≠ 0} :=
+  ⟨(c:ℂ) • v.val, smul_ne_zero (Units.ne_zero c) v.property⟩
+
+theorem projective_unit_scale_continuous {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E] (c : ℂˣ) :
+    Continuous (projectiveUnitScale (E := E) c) :=
+  (continuous_const.smul continuous_subtype_val).subtype_mk _
+
+/-- The saturation of an open set of nonzero vectors is open,
+as a union of preimages under the unit-scaling maps. -/
+theorem projective_ray_quotient_open {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E] :
+    IsOpenMap (Projectivization.mk' ℂ : {v : E // v ≠ 0} → Projectivization ℂ E) := by
+  intro s hs
+  apply (projective_ray_quotient_map (E := E)).isOpen_preimage.mp
+  let f : {v : E // v ≠ 0} → Projectivization ℂ E := Projectivization.mk' ℂ
+  have he : f ⁻¹' (f '' s) = ⋃ c : ℂˣ, (projectiveUnitScale c) ⁻¹' s := by
+    ext x
+    constructor
+    · rintro ⟨y,hy,hxy⟩
+      obtain ⟨c,hc⟩ := (Projectivization.mk_eq_mk_iff ℂ y.val x.val y.property x.property).1 hxy
+      apply Set.mem_iUnion.2
+      refine ⟨c, ?_⟩
+      have h : projectiveUnitScale c x = y := Subtype.ext hc
+      change projectiveUnitScale c x ∈ s
+      rw [h]
+      exact hy
+    · intro hx
+      obtain ⟨c,hc⟩ := Set.mem_iUnion.1 hx
+      refine ⟨projectiveUnitScale c x,hc,?_⟩
+      exact (Projectivization.mk_eq_mk_iff ℂ _ _ _ _).2 ⟨c,rfl⟩
+  change IsOpen (f ⁻¹' (f '' s))
+  rw [he]
+  exact isOpen_iUnion fun c => hs.preimage (projective_unit_scale_continuous c)
+
+/-- A finite-dimensional complex normed vector space has a countable
+basis; the open quotient map passes this property to its rays. -/
+theorem projective_secondCountable {E : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E] [FiniteDimensional ℂ E] :
+    SecondCountableTopology (Projectivization ℂ E) := by
+  let e : E ≃L[ℂ] (Fin (Module.finrank ℂ E) → ℂ) :=
+    ContinuousLinearEquiv.ofFinrankEq (by simp)
+  letI : SecondCountableTopology E :=
+    e.toHomeomorph.isEmbedding.secondCountableTopology
+  exact (projective_ray_quotient_map (E := E)).secondCountableTopology
+    (projective_ray_quotient_open (E := E))
+
+/-- Local gauge invariance: phase equivalence is required only on a
+neighbourhood of the point, as is appropriate for chart overlaps. -/
+theorem projective_tensor_local_phase {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E]
+    (n m : V → E) (x u v : V)
+    (hn : DifferentiableAt ℝ n x) (hm : DifferentiableAt ℝ m x)
+    (hunit : inner ℂ (n x) (n x) = 1)
+    (h : ∀ᶠ y in nhds x, inner ℂ (n y) (n y) = 1 ∧
+      ∃ c : ℂ, star c*c = 1 ∧ m y = c • n y) :
+    projectiveTensor m x u v = projectiveTensor n x u v := by
+  let c : V → ℂ := fun y => inner ℂ (n y) (m y)
+  have hc : DifferentiableAt ℝ c x := hn.inner ℂ hm
+  have hphase : ∀ᶠ y in nhds x, star (c y)*c y = 1 ∧ m y = c y • n y := by
+    filter_upwards [h] with y hy
+    obtain ⟨hyu,a,ha,he⟩ := hy
+    have hca : c y = a := by
+      change inner ℂ (n y) (m y) = a
+      rw [he,inner_smul_right,hyu,mul_one]
+    rw [hca]
+    exact ⟨ha,he⟩
+  have he : m =ᶠ[nhds x] fun y => c y • n y := hphase.mono fun _ hy => hy.2
+  have hval := he.self_of_nhds
+  have hd := he.fderiv_eq (𝕜 := ℝ)
+  calc
+    projectiveTensor m x u v = projectiveTensor (fun y => c y • n y) x u v := by
+      unfold projectiveTensor
+      rw [hval,hd]
+    _ = projectiveTensor n x u v :=
+      projective_tensor_gauge_fderiv n c x u v hn hc hunit hphase.self_of_nhds.1
+
+/-- Joint smoothness of the pullback tensor in the base and both
+tangent arguments. The local lift is a smooth unit vector map. -/
+theorem projective_tensor_joint_smooth {V E : Type*}
+    [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    (n : V → E) (hn : ContDiff ℝ (⊤ : WithTop ℕ∞) n)
+    (hunit : ∀ x, inner ℂ (n x) (n x) = 1) :
+    ContDiff ℝ (⊤ : WithTop ℕ∞)
+      (fun p : V × V × V => projectiveTensor n p.1 p.2.1 p.2.2) := by
+  have hd : ContDiff ℝ (⊤ : WithTop ℕ∞) (fderiv ℝ n) :=
+    hn.fderiv_right (by simp)
+  let N : V × V × V → E := fun p => n p.1
+  let U : V × V × V → E := fun p => fderiv ℝ n p.1 p.2.1
+  let W : V × V × V → E := fun p => fderiv ℝ n p.1 p.2.2
+  have hN : ContDiff ℝ (⊤ : WithTop ℕ∞) N := hn.comp contDiff_fst
+  have hU : ContDiff ℝ (⊤ : WithTop ℕ∞) U :=
+    (hd.comp contDiff_fst).clm_apply (contDiff_fst.comp contDiff_snd)
+  have hW : ContDiff ℝ (⊤ : WithTop ℕ∞) W :=
+    (hd.comp contDiff_fst).clm_apply (contDiff_snd.comp contDiff_snd)
+  have he : (fun p : V × V × V => projectiveTensor n p.1 p.2.1 p.2.2) =
+      fun p => inner ℂ (U p) (W p) -
+        inner ℂ (U p) (N p)*inner ℂ (N p) (W p) := by
+    funext p
+    unfold projectiveTensor projectivePullback
+    rw [horizontal_gram_subtract _ _ _ (hunit p.1)]
+    change inner ℂ (U p) (W p) - star (inner ℂ (N p) (U p))*inner ℂ (N p) (W p) = _
+    have hc : star (inner ℂ (N p) (U p)) = inner ℂ (U p) (N p) :=
+      inner_conj_symm _ _
+    rw [hc]
+  rw [he]
+  exact (hU.inner ℂ hW).sub ((hU.inner ℂ hN).mul (hN.inner ℂ hW))
+
+/-- The actual affine representative of a chart point. It is
+nonzero at every model coordinate, including component zeros. -/
+noncomputable def projectiveModelRepresentative {E H : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E)
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) (x : H) : E :=
+  b+(e.symm x : E)
+
+theorem projective_model_representative_nonzero {E H : Type*}
+    [NormedAddCommGroup E] [NormedSpace ℂ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) (x : H) :
+    projectiveModelRepresentative ell b e x ≠ 0 := by
+  intro h
+  have he : ell (projectiveModelRepresentative ell b e x) = 1 := by
+    unfold projectiveModelRepresentative
+    have hz : ell (e.symm x : E) = 0 := (e.symm x).property
+    rw [map_add,hb,hz,add_zero]
+  simp [h] at he
+
+/-- Smooth normalized lift of an entire affine chart. -/
+noncomputable def projectiveModelLift {E H : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E)
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) (x : H) : E :=
+  rayNormalize (projectiveModelRepresentative ell b e x)
+
+theorem projective_model_lift_unit {E H : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) (x : H) :
+    inner ℂ (projectiveModelLift ell b e x) (projectiveModelLift ell b e x) = 1 :=
+  ray_normalize_unit _ (projective_model_representative_nonzero ell b hb e x)
+
+theorem projective_model_lift_nonzero {E H : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) (x : H) :
+    projectiveModelLift ell b e x ≠ 0 := by
+  intro h
+  have he := projective_model_lift_unit ell b hb e x
+  simp [h] at he
+
+theorem projective_model_lift_smooth {E H : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H] [NormedSpace ℝ H]
+    [IsScalarTower ℝ ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) :
+    ContDiff ℝ (⊤ : WithTop ℕ∞) (projectiveModelLift ell b e) := by
+  let L : H →L[ℂ] E :=
+    (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)).subtypeL.comp e.symm.toContinuousLinearMap
+  have h : ContDiff ℝ (⊤ : WithTop ℕ∞) (projectiveModelRepresentative ell b e) := by
+    change ContDiff ℝ (⊤ : WithTop ℕ∞) (fun x => b+(L.restrictScalars ℝ) x)
+    exact contDiff_const.add (L.restrictScalars ℝ).contDiff
+  apply contDiff_iff_contDiffAt.2
+  intro x
+  exact ray_normalize_smooth _ x _ h.contDiffAt
+    (projective_model_representative_nonzero ell b hb e x)
+
+theorem projective_model_lift_ray {E H : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E] [NormedAddCommGroup H] [NormedSpace ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) (x : H) :
+    Projectivization.mk ℂ (projectiveModelLift ell b e x)
+      (projective_model_lift_nonzero ell b hb e x) =
+      (projectiveModelChart ell b hb e).symm x := by
+  rw [projective_model_chart_inverse]
+  exact ray_normalize_same_ray _ (projective_model_representative_nonzero ell b hb e x)
+    (projective_model_lift_nonzero ell b hb e x)
+
+/-- Projective tensor in any affine chart, jointly smooth in chart
+base coordinate and two real tangent vectors. -/
+theorem projective_chart_tensor_smooth {E H : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H] [NormedSpace ℝ H]
+    [IsScalarTower ℝ ℂ H]
+    (ell : E →L[ℂ] ℂ) (b : E) (hb : ell b = 1)
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H) :
+    ContDiff ℝ (⊤ : WithTop ℕ∞) (fun p : H × H × H =>
+      projectiveTensor (projectiveModelLift ell b e) p.1 p.2.1 p.2.2) :=
+  projective_tensor_joint_smooth _ (projective_model_lift_smooth ell b hb e)
+    (projective_model_lift_unit ell b hb e)
+
+/-- Compatibility on every actual chart overlap, using the derivative
+of the true projective transition map, not a postulated coordinate
+change. The result is precisely the tensor transformation law. -/
+theorem projective_chart_tensor_overlap {E H : Type*}
+    [NormedAddCommGroup E] [InnerProductSpace ℂ E] [NormedSpace ℝ E]
+    [IsScalarTower ℝ ℂ E]
+    [NormedAddCommGroup H] [NormedSpace ℂ H] [NormedSpace ℝ H]
+    [IsScalarTower ℝ ℂ H]
+    (ell ell' : E →L[ℂ] ℂ) (b b' : E) (hb : ell b = 1) (hb' : ell' b' = 1)
+    (e : (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H)
+    (e' : (LinearMap.ker (ell' : E →ₗ[ℂ] ℂ)) ≃L[ℂ] H)
+    (x u v : H)
+    (hx : x ∈ ((projectiveModelChart ell b hb e).symm.trans
+      (projectiveModelChart ell' b' hb' e')).source) :
+    let g := (projectiveModelChart ell b hb e).symm.trans
+      (projectiveModelChart ell' b' hb' e')
+    projectiveTensor (projectiveModelLift ell b e) x u v =
+      projectiveTensor (projectiveModelLift ell' b' e') (g x)
+        (fderiv ℂ g x u) (fderiv ℂ g x v) := by
+  dsimp
+  let A := projectiveModelChart ell b hb e
+  let B := projectiveModelChart ell' b' hb' e'
+  let g := A.symm.trans B
+  let n := projectiveModelLift ell b e
+  let m := projectiveModelLift ell' b' e'
+  have hgc : DifferentiableAt ℂ g x :=
+    ((projective_model_chart_transition ell ell' b b' hb hb' e e' 1 x hx).contDiffAt
+      (g.open_source.mem_nhds hx)).differentiableAt (by norm_num)
+  have hg : DifferentiableAt ℝ g x := hgc.restrictScalars ℝ
+  have hn : DifferentiableAt ℝ n x :=
+    (projective_model_lift_smooth ell b hb e).contDiffAt.differentiableAt (by simp)
+  have hm : DifferentiableAt ℝ m (g x) :=
+    (projective_model_lift_smooth ell' b' hb' e').contDiffAt.differentiableAt (by simp)
+  have he : ∀ᶠ y in nhds x, inner ℂ (n y) (n y) = 1 ∧
+      ∃ c : ℂ, star c*c = 1 ∧ (m ∘ g) y = c • n y := by
+    filter_upwards [g.open_source.mem_nhds hx] with y hy
+    have hny := projective_model_lift_unit ell b hb e y
+    have hmy := projective_model_lift_unit ell' b' hb' e' (g y)
+    have hnz := projective_model_lift_nonzero ell b hb e y
+    have hmz := projective_model_lift_nonzero ell' b' hb' e' (g y)
+    have hr : Projectivization.mk ℂ (m (g y)) hmz =
+        Projectivization.mk ℂ (n y) hnz := by
+      change Projectivization.mk ℂ (projectiveModelLift ell' b' e' (g y)) hmz =
+        Projectivization.mk ℂ (projectiveModelLift ell b e y) hnz
+      rw [projective_model_lift_ray,projective_model_lift_ray]
+      change B.symm (B (A.symm y)) = A.symm y
+      apply B.left_inv
+      exact hy.2
+    obtain ⟨h1,h2⟩ := normalized_same_projective_ray _ _ hny hmy hnz hmz hr
+    exact ⟨hny,_,h2,h1⟩
+  have hp := projective_tensor_local_phase n (m ∘ g) x u v hn
+    (hm.comp x hg) (projective_model_lift_unit ell b hb e x) he
+  rw [projective_tensor_reparam m g x u v hm hg] at hp
+  rw [hgc.fderiv_restrictScalars ℝ] at hp
+  exact hp.symm
+
 end MicroMacro
 
 #print axioms MicroMacro.centered_shift
@@ -2797,3 +3098,20 @@ end MicroMacro
 #print axioms MicroMacro.projectiveModelEquiv
 #print axioms MicroMacro.projectivePreferredChart
 #print axioms MicroMacro.projectiveChartedSpace
+#print axioms MicroMacro.projective_common_chart
+#print axioms MicroMacro.projective_t2Space
+#print axioms MicroMacro.projective_unit_scale_continuous
+#print axioms MicroMacro.projective_ray_quotient_open
+#print axioms MicroMacro.projective_secondCountable
+#print axioms MicroMacro.projective_tensor_local_phase
+#print axioms MicroMacro.projective_tensor_joint_smooth
+#print axioms MicroMacro.projective_model_representative_nonzero
+#print axioms MicroMacro.projective_model_lift_unit
+#print axioms MicroMacro.projective_model_lift_nonzero
+#print axioms MicroMacro.projective_model_lift_smooth
+#print axioms MicroMacro.projective_model_lift_ray
+#print axioms MicroMacro.projective_chart_tensor_smooth
+#print axioms MicroMacro.projective_chart_tensor_overlap
+#print axioms MicroMacro.projectiveUnitScale
+#print axioms MicroMacro.projectiveModelRepresentative
+#print axioms MicroMacro.projectiveModelLift
