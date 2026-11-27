@@ -71,12 +71,20 @@ theorem chart_intrinsic_bracket (X Y : Field4) (p : M) :
   rw [hself]
   have hi : (ContinuousLinearMap.id ℝ E4).inverse = ContinuousLinearMap.id ℝ E4 :=
     ContinuousLinearMap.inverse_eq (by simp) (by simp)
-  rw [hi, ContinuousLinearMap.id_apply]
+  rw [hi]
+  change VectorField.lieBracketWithin ℝ
+    (fun z : E4 => VectorField.mpullbackWithin I4 I4
+      (extChartAt I4 p).symm X Set.univ z)
+    (fun z : E4 => VectorField.mpullbackWithin I4 I4
+      (extChartAt I4 p).symm Y Set.univ z)
+    Set.univ (extChartAt I4 p p) =
+      fderiv ℝ (chartIntrinsicField Y p) (extChartAt I4 p p) (X p) -
+      fderiv ℝ (chartIntrinsicField X p) (extChartAt I4 p p) (Y p)
   simp only [VectorField.lieBracketWithin, fderivWithin_univ]
   rw [heX.fderiv_eq, heY.fderiv_eq, heX.eq_of_nhds, heY.eq_of_nhds,
     chart_intrinsic_field_value X p p (mem_extChartAt_source p),
     chart_intrinsic_field_value Y p p (mem_extChartAt_source p)]
-  simp only [tangentCoordChange_self (mem_extChartAt_source p)]
+  simp only [tangentCoordChange_self (I := I4) (mem_extChartAt_source p)]
 
 theorem chart_intrinsic_metric_at_self (G : Metric4) (p : M) (u v : E4) :
     chartMetricBundle (chartIntrinsicComponents G p (extChartAt I4 p p)) u v =
@@ -254,7 +262,8 @@ theorem chart_intrinsic_point_lc_unique (G : Metric4)
     rw [hs p (Y.val p) (Q X Z)] at hq
     dsimp [A, D]
     simp only [map_sub, ContinuousLinearMap.sub_apply]
-    linarith
+    have he := hp.symm.trans hq
+    linarith only [he]
   have hz (X Y Z : Local4 p) : A X Y Z = 0 := by
     linarith [ha X Y Z, hb Y X Z, ha Y Z X, hb Z Y X, ha Z X Y, hb X Z Y]
   funext X Y
