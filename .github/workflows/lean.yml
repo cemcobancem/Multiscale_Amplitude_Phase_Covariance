@@ -43,18 +43,19 @@ jobs:
           lake env lean Step3CAtlas.lean | tee -a axiom-audit.log
           lake env lean Step3CManifold.lean | tee -a axiom-audit.log
           lake env lean Step3CSmooth.lean | tee -a axiom-audit.log
+          lake env lean Step3CIntrinsic.lean | tee -a axiom-audit.log
           python3 - <<'PY'
           import re
           from pathlib import Path
-          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text() + "\n" + Path("Step3C.lean").read_text() + "\n" + Path("Step3CAtlas.lean").read_text() + "\n" + Path("Step3CManifold.lean").read_text() + "\n" + Path("Step3CSmooth.lean").read_text()
+          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text() + "\n" + Path("Step3C.lean").read_text() + "\n" + Path("Step3CAtlas.lean").read_text() + "\n" + Path("Step3CManifold.lean").read_text() + "\n" + Path("Step3CSmooth.lean").read_text() + "\n" + Path("Step3CIntrinsic.lean").read_text()
           out = Path("axiom-audit.log").read_text()
           names = re.findall(r"^#print axioms (MicroMacro\.\w+)$", source, re.M)
           theorems = re.findall(r"^theorem (\w+)", source, re.M)
           definitions = re.findall(r"^(?:noncomputable )?def (\w+)", source, re.M)
           declarations = theorems + definitions
-          assert len(theorems) == 236
-          assert len(definitions) == 49
-          assert len(declarations) == 285
+          assert len(theorems) == 247
+          assert len(definitions) == 53
+          assert len(declarations) == 296
           assert len(names) == len(declarations)
           assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)

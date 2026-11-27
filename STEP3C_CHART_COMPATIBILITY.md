@@ -21,3 +21,7 @@ Two additional theorems compose actual chart transition extraction with the cons
 ## Ordinary smooth regularity extension
 
 All six previous runs stopped at the same atlas scalar-field inference error; fix at a3f9151606165da7cfb0adff0810ab25cb4cd73a. Step3CSmooth.lean introduces 13 new theorem candidates, preserving earlier statements. C² transitions suffice for the Hessian symmetry, LC overlap and actual covariant derivative compatibility; ordinary C-infinity implies C². Local determinant, adjugate, inverse, metric partial and Christoffel regularity and bundled coefficient and covariant output regularity are derived at nondegenerate points without requiring ambient global nondegeneracy. Total 285 declarations. These proofs await CI; intrinsic chart data and global connection laws remain outstanding.
+
+## Intrinsic tangent-fiber representation and global output candidates
+
+Step3CIntrinsic.lean adds 11 theorem candidates and 4 definitions (300 total). Construct coordinate metric components and field representatives from actual tangent-fiber bilinear forms and sections; derive metric and field overlap germs, signature preservation, actual C² manifold transition, and existence/uniqueness of the glued smooth covariant output with local C-infinity regularity hypotheses for input coordinate representatives. No output regularity or metric/field overlap hypothesis is needed by the new global theorem. Full intrinsic operator axioms and uniqueness among arbitrary connections remain separate obligations. All candidates await CI. Main unchanged. No Step 3D.
