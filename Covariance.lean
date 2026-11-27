@@ -2475,8 +2475,8 @@ noncomputable def projectiveHyperplaneModel {E H : Type*}
     abel
   right_inv x := by
     change e (projectiveKernelProjection ell b hb (b+(e.symm x : E))) = x
-    rw [← e.apply_symm_apply x]
-    apply congrArg e
+    apply e.symm.injective
+    rw [e.symm_apply_apply]
     apply Subtype.ext
     rw [projective_kernel_projection_apply]
     have h : ell (e.symm x : E) = 0 := (e.symm x).property
@@ -2598,7 +2598,7 @@ noncomputable def projectiveModelEquiv {E : Type*}
     (LinearMap.ker (ell : E →ₗ[ℂ] ℂ)) ≃L[ℂ] (Fin (Module.finrank ℂ E-1) → ℂ) :=
   ContinuousLinearEquiv.ofFinrankEq (by
     rw [projective_kernel_finrank ell b hb]
-    simp [Module.finrank_fin_fun])
+    simp)
 
 /-- Preferred chart functional is nonzero on its ray representative. -/
 theorem projective_preferred_functional_ne_zero {E : Type*}
