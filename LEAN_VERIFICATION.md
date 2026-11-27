@@ -2,7 +2,7 @@
 
 ## Step 3B certified mathematical checkpoint
 
-[Step 3B v1.0](STEP3B_BASELINE_V1.0.md): 179 theorems and 38 definitions passed both corrected runs. Full regression against both prior ledgers; [217-declaration permanent ledger](STEP3B_AXIOM_AUDIT.tsv). Fresh consolidation CI and owner approval pending.
+[Step 3B v1.0](STEP3B_BASELINE_V1.0.md): 179 theorems and 38 definitions passed both corrected runs. Full regression against both prior ledgers; [217-declaration permanent ledger](STEP3B_AXIOM_AUDIT.tsv). Both consolidation runs passed and owner-approved PR #19 was merged into main. See the baseline for fresh main CI.
 
 ## Step 3A certified mathematical checkpoint
 

@@ -11,4 +11,4 @@ The 198-declaration checkpoint passed both corrected Lean workflows. See [Step 3
 
 ## Paper I — Step 3B verified coordinate Levi-Civita foundations
 
-The 217-declaration mathematical checkpoint passed both corrected workflows. See [Step 3B v1.0 baseline](STEP3B_BASELINE_V1.0.md) and [permanent dependency ledger](STEP3B_AXIOM_AUDIT.tsv). Draft PR #19 awaits fresh integration CI and owner approval. Step 3C is not started.
+The 217-declaration mathematical checkpoint passed both corrected workflows. See [Step 3B v1.0 baseline](STEP3B_BASELINE_V1.0.md) and [permanent dependency ledger](STEP3B_AXIOM_AUDIT.tsv). Both consolidation workflows passed and owner-approved PR #19 was merged into main. See the baseline for fresh main CI evidence. Step 3C is not started.
