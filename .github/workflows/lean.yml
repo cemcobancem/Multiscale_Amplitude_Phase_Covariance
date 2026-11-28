@@ -1,7 +1,7 @@
 name: Lean proof check
 on:
   push:
-    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation, paper-i-step2-projective-geometry, paper-i-step2-projective-charts, paper-i-step2-zero-safe-atlas, paper-i-step2-manifold-polar, paper-i-step2-global-tensor, paper-i-step2-tangent-field, paper-i-step2-consolidation-v1.0, paper-i-step3-lorentzian-foundations, paper-i-step3b-connection-uniqueness, paper-i-step3c-chart-compatibility]
+    branches: [paper-i-lean-verification, main, paper-i-intrinsic-local, paper-i-local-conservation, paper-i-step2-projective-geometry, paper-i-step2-projective-charts, paper-i-step2-zero-safe-atlas, paper-i-step2-manifold-polar, paper-i-step2-global-tensor, paper-i-step2-tangent-field, paper-i-step2-consolidation-v1.0, paper-i-step3-lorentzian-foundations, paper-i-step3b-connection-uniqueness, paper-i-step3c-chart-compatibility, paper-i-step3d-curvature]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -41,6 +41,9 @@ jobs:
           test "$(git hash-object Step3CManifold.lean)" = 4121d3efe10ccb38f62e8f20f008bc505ebfa006
           test "$(git hash-object Step3CSmooth.lean)" = 62085d8fb1b7ddc790d45db32426d6da6868b50c
           test "$(git hash-object Step3CIntrinsic.lean)" = 31b3505564fbba2a52d77e9d64e453a70103ee96
+          test "$(git hash-object Step3CLeviCivita.lean)" = a4ce60ffff2f7619d04c4a4ccffa61ded28883a4
+          test "$(git hash-object STEP3C_309_AXIOM_AUDIT.tsv)" = 2b2420015eb8d7a24e2c11369a58d0e2a14ef7c2
+          test "$(git hash-object STEP3C_AXIOM_AUDIT.tsv)" = 38e99b63b53e93bf18b1cae44640a8da043a8273
           lake env lean Covariance.lean | tee axiom-audit.log
           lake env lean Step3A.lean | tee -a axiom-audit.log
           lake env lean Step3B.lean | tee -a axiom-audit.log
@@ -50,18 +53,19 @@ jobs:
           lake env lean Step3CSmooth.lean | tee -a axiom-audit.log
           lake env lean Step3CIntrinsic.lean | tee -a axiom-audit.log
           lake env lean Step3CLeviCivita.lean | tee -a axiom-audit.log
+          lake env lean Step3D.lean | tee -a axiom-audit.log
           python3 - <<'PY'
           import re
           from pathlib import Path
-          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text() + "\n" + Path("Step3C.lean").read_text() + "\n" + Path("Step3CAtlas.lean").read_text() + "\n" + Path("Step3CManifold.lean").read_text() + "\n" + Path("Step3CSmooth.lean").read_text() + "\n" + Path("Step3CIntrinsic.lean").read_text() + "\n" + Path("Step3CLeviCivita.lean").read_text()
+          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text() + "\n" + Path("Step3C.lean").read_text() + "\n" + Path("Step3CAtlas.lean").read_text() + "\n" + Path("Step3CManifold.lean").read_text() + "\n" + Path("Step3CSmooth.lean").read_text() + "\n" + Path("Step3CIntrinsic.lean").read_text() + "\n" + Path("Step3CLeviCivita.lean").read_text() + "\n" + Path("Step3D.lean").read_text()
           out = Path("axiom-audit.log").read_text()
           names = re.findall(r"^#print axioms (MicroMacro\.\w+)$", source, re.M)
           theorems = re.findall(r"^theorem (\w+)", source, re.M)
           definitions = re.findall(r"^(?:noncomputable )?def (\w+)", source, re.M)
           declarations = theorems + definitions
-          assert len(theorems) == 268
-          assert len(definitions) == 55
-          assert len(declarations) == 323
+          assert len(theorems) == 275
+          assert len(definitions) == 60
+          assert len(declarations) == 335
           assert len(names) == len(declarations)
           assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)
@@ -138,6 +142,17 @@ jobs:
                   assert ";".join(sorted(x.strip() for x in report.split(",") if x.strip())) == push == pr, name
           assert all({n: (k, mod, p, q) for n, k, mod, p, q in checkpoint}[n] == v for n, v in current.items())
           print("Step 3C 309-declaration checkpoint ledger matched")
+          with Path("STEP3C_AXIOM_AUDIT.tsv").open() as f:
+              frozen = list(csv.reader(f, delimiter="\t"))[1:]
+          assert len(frozen) == 323
+          assert len({r[0] for r in frozen}) == 323
+          assert {r[0] for r in frozen} == set(re.findall(r"^#print axioms (MicroMacro\.\w+)$", "\n".join(Path(p).read_text() for p in ["Covariance.lean","Step3A.lean","Step3B.lean","Step3C.lean","Step3CAtlas.lean","Step3CManifold.lean","Step3CSmooth.lean","Step3CIntrinsic.lean","Step3CLeviCivita.lean"]), re.M))
+          for name, kind, module, push, pr in frozen:
+              reports = [r for n, r in all_reports if n == name]
+              assert reports, name
+              for report in reports:
+                  assert ";".join(sorted(x.strip() for x in report.split(",") if x.strip())) == push == pr, name
+          print("Step 3C permanent ledger matched for all 323 declarations")
           assert "sorryAx" not in out
           print("Axiom audit passed for all", len(theorems), "theorems and", len(definitions), "definitions")
           PY
