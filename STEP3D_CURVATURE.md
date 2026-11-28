@@ -13,3 +13,7 @@ Step3D.lean introduces actual coordinate derivatives of connection coefficients,
 5. Audit all declarations against all five frozen ledgers; independent mathematical scope review and owner-approved consolidation.
 
 Einstein field equations, a physical quantum-to-Lorentzian map, stress-energy sourcing, and empirical claims are not consequences of the geometric identities alone. No Step 3E or main merge without approval.
+
+## Verified first checkpoint and second candidate checkpoint
+
+Commit 4ccade19a86905cfb1442ce9d077e2f759a7dbca passed push 46126385940 and PR 46126390062; 335/335 clean in both, 670 reports each, exact agreement and all five earlier ledgers matched. Frozen evidence: STEP3D_335_AXIOM_AUDIT.tsv. Step3D.lean frozen at blob 4ebb428a44a86474559a781ed1ff7a0086f0ecea. Step3DBianchi.lean adds 5 theorem candidates and one definition (341 total): derivative symmetry from torsion-free coefficient fields, coordinate first Bianchi identity, metric-Christoffel specialization, intrinsic commutator and intrinsic skew symmetry under the stated metric regularity. Intrinsic tensoriality, agreement with coordinate curvature, and the second Bianchi identity remain outstanding. No merge.
