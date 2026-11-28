@@ -45,6 +45,7 @@ jobs:
           test "$(git hash-object STEP3C_309_AXIOM_AUDIT.tsv)" = 2b2420015eb8d7a24e2c11369a58d0e2a14ef7c2
           test "$(git hash-object STEP3C_AXIOM_AUDIT.tsv)" = 38e99b63b53e93bf18b1cae44640a8da043a8273
           test "$(git hash-object Step3D.lean)" = 4ebb428a44a86474559a781ed1ff7a0086f0ecea
+          test "$(git hash-object Step3DBianchi.lean)" = 0dac2ab381a1d6c4dc6adb4027922639301cec5f
           lake env lean Covariance.lean | tee axiom-audit.log
           lake env lean Step3A.lean | tee -a axiom-audit.log
           lake env lean Step3B.lean | tee -a axiom-audit.log
@@ -56,18 +57,19 @@ jobs:
           lake env lean Step3CLeviCivita.lean | tee -a axiom-audit.log
           lake env lean Step3D.lean | tee -a axiom-audit.log
           lake env lean Step3DBianchi.lean | tee -a axiom-audit.log
+          lake env lean Step3DTensor.lean | tee -a axiom-audit.log
           python3 - <<'PY'
           import re
           from pathlib import Path
-          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text() + "\n" + Path("Step3C.lean").read_text() + "\n" + Path("Step3CAtlas.lean").read_text() + "\n" + Path("Step3CManifold.lean").read_text() + "\n" + Path("Step3CSmooth.lean").read_text() + "\n" + Path("Step3CIntrinsic.lean").read_text() + "\n" + Path("Step3CLeviCivita.lean").read_text() + "\n" + Path("Step3D.lean").read_text() + "\n" + Path("Step3DBianchi.lean").read_text()
+          source = Path("Covariance.lean").read_text() + "\n" + Path("Step3A.lean").read_text() + "\n" + Path("Step3B.lean").read_text() + "\n" + Path("Step3C.lean").read_text() + "\n" + Path("Step3CAtlas.lean").read_text() + "\n" + Path("Step3CManifold.lean").read_text() + "\n" + Path("Step3CSmooth.lean").read_text() + "\n" + Path("Step3CIntrinsic.lean").read_text() + "\n" + Path("Step3CLeviCivita.lean").read_text() + "\n" + Path("Step3D.lean").read_text() + "\n" + Path("Step3DBianchi.lean").read_text() + "\n" + Path("Step3DTensor.lean").read_text()
           out = Path("axiom-audit.log").read_text()
           names = re.findall(r"^#print axioms (MicroMacro\.\w+)$", source, re.M)
           theorems = re.findall(r"^theorem (\w+)", source, re.M)
           definitions = re.findall(r"^(?:noncomputable )?def (\w+)", source, re.M)
           declarations = theorems + definitions
-          assert len(theorems) == 280
-          assert len(definitions) == 61
-          assert len(declarations) == 341
+          assert len(theorems) == 296
+          assert len(definitions) == 62
+          assert len(declarations) == 358
           assert len(names) == len(declarations)
           assert len(set(names)) == len(names)
           assert {x.split(".")[-1] for x in names} == set(declarations)
@@ -166,6 +168,17 @@ jobs:
               for report in reports:
                   assert ";".join(sorted(x.strip() for x in report.split(",") if x.strip())) == push == pr, name
           print("Step 3D 335-declaration checkpoint ledger matched")
+          with Path("STEP3D_341_AXIOM_AUDIT.tsv").open() as f:
+              tensor_checkpoint = list(csv.reader(f, delimiter="\t"))[1:]
+          assert len(tensor_checkpoint) == 341
+          assert len({r[0] for r in tensor_checkpoint}) == 341
+          assert {r[0] for r in tensor_checkpoint} == set(re.findall(r"^#print axioms (MicroMacro\.\w+)$", "\n".join(Path(p).read_text() for p in ["Covariance.lean","Step3A.lean","Step3B.lean","Step3C.lean","Step3CAtlas.lean","Step3CManifold.lean","Step3CSmooth.lean","Step3CIntrinsic.lean","Step3CLeviCivita.lean","Step3D.lean","Step3DBianchi.lean"]), re.M))
+          for name, kind, module, push, pr in tensor_checkpoint:
+              reports = [r for n, r in all_reports if n == name]
+              assert reports, name
+              for report in reports:
+                  assert ";".join(sorted(x.strip() for x in report.split(",") if x.strip())) == push == pr, name
+          print("Step 3D 341-declaration checkpoint ledger matched")
           assert "sorryAx" not in out
           print("Axiom audit passed for all", len(theorems), "theorems and", len(definitions), "definitions")
           PY
