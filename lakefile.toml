@@ -1,6 +1,6 @@
 name = "PaperI"
 version = "0.2.0"
-defaultTargets = ["Covariance", "Step3A", "Step3B", "Step3C", "Step3CAtlas", "Step3CManifold", "Step3CSmooth", "Step3CIntrinsic", "Step3CLeviCivita"]
+defaultTargets = ["Covariance", "Step3A", "Step3B", "Step3C", "Step3CAtlas", "Step3CManifold", "Step3CSmooth", "Step3CIntrinsic", "Step3CLeviCivita", "Step3D", "Step3DBianchi", "Step3DTensor"]
 
 [[require]]
 name = "mathlib"
@@ -33,3 +33,12 @@ name = "Step3CIntrinsic"
 
 [[lean_lib]]
 name = "Step3CLeviCivita"
+
+[[lean_lib]]
+name = "Step3D"
+
+[[lean_lib]]
+name = "Step3DBianchi"
+
+[[lean_lib]]
+name = "Step3DTensor"
